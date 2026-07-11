@@ -1,0 +1,6 @@
+{"payload": {"listing_id": "gp-001", "neighborhood": "greenpoint", "price": 3200, "source": "rentcast"}, "seq": null, "ts": "2026-07-01T09:00:00+00:00", "type": "listing_seen"}
+{"payload": {"listing_id": "gp-002", "neighborhood": "greenpoint", "price": 2950, "source": "rentcast"}, "seq": null, "ts": "2026-07-01T09:00:00+00:00", "type": "listing_seen"}
+{"payload": {"listing_id": "wb-001", "neighborhood": "williamsburg", "price": 3600, "source": "rentcast"}, "seq": null, "ts": "2026-07-02T10:00:00+00:00", "type": "listing_seen"}
+{"payload": {"listing_id": "gp-001", "price": 3100}, "seq": null, "ts": "2026-07-02T15:00:00+00:00", "type": "price_changed"}
+{"payload": {"listing_id": "gp-003", "neighborhood": "greenpoint", "price": 3400, "source": "rentcast"}, "seq": null, "ts": "2026-07-03T09:00:00+00:00", "type": "listing_seen"}
+{"payload": {"listing_id": "gp-002"}, "seq": null, "ts": "2026-07-04T11:00:00+00:00", "type": "listing_delisted"}
