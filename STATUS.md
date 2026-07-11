@@ -22,19 +22,20 @@
 
 ## Next action
 
-Write **Plan 2 — Sources & scoring** (RentCast adapter, Gmail alert parser,
-NYC Open Data enricher, GTFS commute, resolver + relist detection, scorer,
-bait detector, LLM fact extraction), using the writing-plans skill against
-the spec. Before writing the email-parser task: capture a real StreetEasy
-alert email sample.
+Execute **Plan 2 — Ingestion** (`docs/superpowers/plans/2026-07-11-doma-ingestion.md`):
+snapshot schema, resolver + relist projection, differ, RentCast/HPD/stations
+adapters, LiveExecutor, `doma scan` + `doma export-corpus` CLI. Task 10
+(StreetEasy email parser) stays gated until Luba captures a real alert email
+to `tests/fixtures/streeteasy_alert_sample.html`.
 
 ## Plan progress
 
 | Plan | Scope | Status |
 |---|---|---|
 | 1 — Core loop | events, store, corpus, projection, policy + stopping rules, clocks, tick loop, replay, smoke corpus, CLI | ✅ Shipped (44 tests) |
-| 2 — Sources & scoring | RentCast/Gmail/OpenData/GTFS adapters, resolver + relist detection, scorer, bait detector, LLM fact extraction | Not written |
-| 3 — Learning, outreach, UI | preference learner, outreach drafter, Streamlit dashboard, golden demo corpus | Not written |
+| 2 — Ingestion | snapshot, resolver + relist, differ, RentCast/HPD/stations adapters, LiveExecutor, scan/export CLI, email parser (gated) | Plan written, not started |
+| 3 — Scoring & bait | LLM fact extraction, scorer, bait detector, enrichment actions in policy ladder, Gmail live fetch | Not written |
+| 4 — Learning, outreach, UI | preference learner, outreach drafter, Streamlit dashboard, golden demo corpus | Not written |
 
 ## Review status (Plan 1)
 
@@ -60,7 +61,9 @@ alert email sample.
 | 2026-07-11 | SQLite event store (not JSONL); corpora/fixtures as JSONL | Projections need ordered/filtered queries; stdlib |
 | 2026-07-11 | Light scoring v1 = extractable facts only; building-shadow geometry deferred to v2 | Geometry is a separate project hiding inside this one |
 | 2026-07-11 | Streamlit UI, not Vercel | Agent is a long-running Python loop + local SQLite; Vercel would need a separate JS app + API + hosted state |
-| 2026-07-11 | Work split into 3 sequential plans | Each ships working, tested software on its own |
+| 2026-07-11 | Work split into sequential plans (now 4: core loop / ingestion / scoring & bait / learning+UI) | Each ships working, tested software on its own |
+| 2026-07-11 | Project named **Doma**; package renamed hunt→doma | User choice; renamed while cheap |
+| 2026-07-11 | v1 neighborhood = zip code (RentCast exposes no neighborhood); delisting is source-scoped; relists detected via canonical-id resurrection in the projection | Honest data + cross-source dedup design (Plan 2) |
 | 2026-07-11 | `iso()` rejects naive datetimes | Quality review: naive datetimes silently convert via local machine time — breaks replay determinism |
 | 2026-07-11 | setuptools src-layout build + editable install added | Plan omission: pytest `pythonpath` doesn't apply to plain `python -m doma`; the demo command requires an installed package |
 

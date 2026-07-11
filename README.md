@@ -71,8 +71,9 @@ one of those decisions is asserted in `tests/test_replay.py`.
 ## Roadmap
 
 1. **Core loop** — event store, projection, policy + stopping rules, replay harness ✅
-2. **Sources & scoring** — adapters, relist detection, scorer, bait detector, LLM fact extraction ← *next*
-3. **Learning, outreach, UI** — preference learner, outreach drafter, Streamlit dashboard, golden demo corpus
+2. **Ingestion** — RentCast/HPD/stations adapters, cross-source identity + relist detection, live scans, corpus capture ← *next*
+3. **Scoring & bait** — LLM fact extraction, scorer, bait detector wired into the policy ladder
+4. **Learning, outreach, UI** — preference learner, outreach drafter, Streamlit dashboard, golden demo corpus
 
 ## Prior work
 

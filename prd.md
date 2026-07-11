@@ -104,9 +104,11 @@ decision policy, and the stopping rules.
 
 1. **Plan 1 — Core loop** (event store, projection, policy + stopping rules,
    replay harness, CLI). `docs/superpowers/plans/2026-07-11-core-loop.md`
-2. **Plan 2 — Sources & scoring** (adapters, resolver + relist detection,
-   scorer, bait detector, LLM fact extraction).
-3. **Plan 3 — Learning, outreach, UI** (preference learner, outreach drafter,
+2. **Plan 2 — Ingestion** (adapters, resolver + relist detection, differ,
+   live executor, corpus capture). `docs/superpowers/plans/2026-07-11-doma-ingestion.md`
+3. **Plan 3 — Scoring & bait** (LLM fact extraction, scorer, bait detector,
+   enrichment actions in the policy ladder).
+4. **Plan 4 — Learning, outreach, UI** (preference learner, outreach drafter,
    Streamlit dashboard, golden demo corpus).
 
 Full design: `docs/superpowers/specs/2026-07-11-apartment-hunt-agent-design.md`
