@@ -63,9 +63,13 @@ state directly.
 4. executes the top action,
 5. appends resulting events.
 
-**Live mode** feeds real time + real APIs. **Replay mode** feeds a recorded
-event corpus at accelerated time. Same loop, byte-identical decisions — this
-is what makes stopping rules assertable in pytest.
+**Live mode** feeds real time + real APIs. **Replay mode** feeds recorded
+*input* events (listings, emails, enrichment responses, LLM extractions,
+scorecards) at accelerated time, while the loop's own decisions
+(scores, flags, proposals, stops) are recomputed live by the same policy code
+and asserted against. Same loop, deterministic decisions — this is what makes
+stopping rules assertable in pytest. No LLM or network calls happen during
+replay; those responses are part of the corpus.
 
 ## 4. Components
 
