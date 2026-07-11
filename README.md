@@ -40,30 +40,38 @@ fires on day 11", "budget never exceeded", "two runs are byte-identical").
 
 ## Status
 
-🚧 Early development. Design and Plan 1 (core loop) are complete; see
-[STATUS.md](STATUS.md) for exact state and
+🚧 In development. **Plan 1 (core loop) is shipped: 44 tests, deterministic
+replay, working CLI.** See [STATUS.md](STATUS.md) for exact state and
 [the design spec](docs/superpowers/specs/2026-07-11-apartment-hunt-agent-design.md)
 for the full architecture.
 
 ## Run
 
+Requires Python 3.12+.
+
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
+.venv/bin/pip install -e .
 .venv/bin/python -m pytest -v        # the loop's behavior, asserted
 ```
 
-Replay demo (offline, no API keys) — available once Plan 1 ships:
+Replay demo (offline, no API keys, deterministic):
 
 ```bash
 .venv/bin/python -m hunt replay tests/fixtures/corpus_smoke.jsonl \
   --start 2026-07-01T00:00:00+00:00 --until 2026-07-15T00:00:00+00:00
 ```
 
+You'll watch the agent scan daily, then stop scanning each neighborhood as
+its inventory goes stale — `mark_saturated williamsburg` fires on day 9,
+`greenpoint` on day 10 — while never exceeding its monthly API budget. Every
+one of those decisions is asserted in `tests/test_replay.py`.
+
 ## Roadmap
 
-1. **Core loop** — event store, projection, policy + stopping rules, replay harness ← *current*
-2. **Sources & scoring** — adapters, relist detection, scorer, bait detector, LLM fact extraction
+1. **Core loop** — event store, projection, policy + stopping rules, replay harness ✅
+2. **Sources & scoring** — adapters, relist detection, scorer, bait detector, LLM fact extraction ← *next*
 3. **Learning, outreach, UI** — preference learner, outreach drafter, Streamlit dashboard, golden demo corpus
 
 ## Prior work
