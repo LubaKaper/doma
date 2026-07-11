@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Bash(git *)",
+      "Bash(python3 *)",
+      "Bash(.venv/bin/python *)",
+      "Bash(.venv/bin/pip *)",
+      "Bash(.venv/bin/pytest *)",
+      "Bash(pytest *)",
+      "Bash(mkdir *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(touch *)",
+      "Bash(cd /Users/lubakaper/Desktop/L3Projects/apartment-search*)",
+      "Bash(/Users/lubakaper/Desktop/L3Projects/apartment-search/.venv/bin/*)"
+    ]
+  }
+}
