@@ -27,6 +27,11 @@ def test_iso_and_parse_ts_round_trip() -> None:
     assert parse_ts(iso(dt)) == dt
 
 
+def test_iso_rejects_naive_datetime() -> None:
+    with pytest.raises(ValueError, match="timezone-aware"):
+        iso(datetime(2026, 7, 1, 9, 0))
+
+
 def test_seq_defaults_to_none() -> None:
     event = Event(ts="2026-07-01T09:00:00+00:00", type="scan_completed",
                   payload={"source": "rentcast"})

@@ -40,6 +40,8 @@ class Event:
 
 def iso(dt: datetime) -> str:
     """Format a timezone-aware datetime as a UTC ISO 8601 string."""
+    if dt.tzinfo is None:
+        raise ValueError("iso() requires a timezone-aware datetime")
     return dt.astimezone(timezone.utc).isoformat()
 
 
