@@ -1,6 +1,6 @@
 from helpers import ev
 
-from hunt.store import EventStore
+from doma.store import EventStore
 
 
 def test_append_assigns_increasing_seq() -> None:
@@ -26,7 +26,7 @@ def test_read_all_returns_events_in_append_order() -> None:
 
 
 def test_payload_survives_round_trip(tmp_path) -> None:
-    db = tmp_path / "hunt.db"
+    db = tmp_path / "doma.db"
     store = EventStore(db)
     store.append(ev("2026-07-01T09:00:00+00:00", "listing_seen",
                     listing_id="gp-001", source="rentcast",

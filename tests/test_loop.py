@@ -2,11 +2,11 @@ from datetime import datetime, timezone
 
 from helpers import ev
 
-from hunt.clock import ReplayClock
-from hunt.events import Event
-from hunt.loop import run_tick
-from hunt.policy import Action, PolicyConfig
-from hunt.store import EventStore
+from doma.clock import ReplayClock
+from doma.events import Event
+from doma.loop import run_tick
+from doma.policy import Action, PolicyConfig
+from doma.store import EventStore
 
 
 class FakeExecutor:

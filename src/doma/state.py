@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from hunt.events import Event
+from doma.events import Event
 
 # Listings in these statuses cost zero future actions (spec §4).
 TERMINAL_STATUSES = frozenset({"rejected", "dead", "viewed", "pursuing"})

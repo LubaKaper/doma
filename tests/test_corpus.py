@@ -1,7 +1,7 @@
 import pytest
 from helpers import ev
 
-from hunt.corpus import load_corpus, save_corpus
+from doma.corpus import load_corpus, save_corpus
 
 
 def test_corpus_round_trip_sorted_by_ts(tmp_path) -> None:

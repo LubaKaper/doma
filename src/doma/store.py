@@ -5,7 +5,7 @@ import json
 import sqlite3
 from pathlib import Path
 
-from hunt.events import Event
+from doma.events import Event
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS events (

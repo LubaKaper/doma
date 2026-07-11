@@ -1,7 +1,7 @@
 """Test helpers shared across test modules."""
 from typing import Any
 
-from hunt.events import Event
+from doma.events import Event
 
 
 def ev(ts: str, type: str, **payload: Any) -> Event:

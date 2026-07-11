@@ -1,4 +1,4 @@
-# apartment-search — NYC Apartment-Hunt Agent
+# Doma — an NYC Apartment-Hunt Agent
 
 An autonomous apartment-hunting loop for NYC: **scan → score → outreach draft
 → preference feedback**, built as a deliberate exercise in *loop engineering*
@@ -59,7 +59,7 @@ python3 -m venv .venv
 Replay demo (offline, no API keys, deterministic):
 
 ```bash
-.venv/bin/python -m hunt replay tests/fixtures/corpus_smoke.jsonl \
+.venv/bin/python -m doma replay tests/fixtures/corpus_smoke.jsonl \
   --start 2026-07-01T00:00:00+00:00 --until 2026-07-15T00:00:00+00:00
 ```
 

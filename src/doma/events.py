@@ -1,4 +1,4 @@
-"""Event model: the single unit of truth in the hunt event store."""
+"""Event model: the single unit of truth in the doma event store."""
 from __future__ import annotations
 
 import json

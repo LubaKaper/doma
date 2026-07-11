@@ -8,8 +8,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from hunt.events import parse_ts
-from hunt.state import TERMINAL_STATUSES, HuntState, ListingState
+from doma.events import parse_ts
+from doma.state import TERMINAL_STATUSES, HuntState, ListingState
 
 
 @dataclass(frozen=True)

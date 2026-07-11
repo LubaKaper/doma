@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
-from hunt.clock import LiveClock, ReplayClock
+from doma.clock import LiveClock, ReplayClock
 
 
 def test_replay_clock_starts_at_start() -> None:

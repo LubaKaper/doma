@@ -1,19 +1,19 @@
-"""CLI entry point: `python -m hunt replay <corpus.jsonl> --start ... --until ...`."""
+"""CLI entry point: `python -m doma replay <corpus.jsonl> --start ... --until ...`."""
 from __future__ import annotations
 
 import argparse
 
-from hunt.clock import ReplayClock
-from hunt.corpus import load_corpus
-from hunt.events import parse_ts
-from hunt.policy import PolicyConfig
-from hunt.replay import run_replay
-from hunt.store import EventStore
+from doma.clock import ReplayClock
+from doma.corpus import load_corpus
+from doma.events import parse_ts
+from doma.policy import PolicyConfig
+from doma.replay import run_replay
+from doma.store import EventStore
 
 
 def main() -> None:
     """Parse args and run a replay, printing every non-sleep decision."""
-    parser = argparse.ArgumentParser(prog="hunt")
+    parser = argparse.ArgumentParser(prog="doma")
     sub = parser.add_subparsers(dest="command", required=True)
     rp = sub.add_parser("replay", help="replay a recorded input corpus")
     rp.add_argument("corpus", help="path to a JSONL input-event corpus")

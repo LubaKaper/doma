@@ -1,6 +1,6 @@
 # PRD — NYC Apartment-Hunt Agent
 
-**Owner:** Luba Kaper · **Created:** 2026-07-11 · **Status:** v1 in development
+**Project:** Doma · **Owner:** Luba Kaper · **Created:** 2026-07-11 · **Status:** v1 in development
 
 ## Problem
 

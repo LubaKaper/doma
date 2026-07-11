@@ -20,7 +20,7 @@ these files and the docs they point to.
 - **What:** event-sourced deterministic tick loop that hunts NYC apartments.
   Policy function decides actions; stopping rules are first-class; LLM only
   extracts facts and drafts outreach — it never decides anything.
-- **Package:** `src/hunt/` (module map in the plan's File Structure section).
+- **Package:** `src/doma/` (project name: Doma) (module map in the plan's File Structure section).
 - **Stack:** Python 3.12, stdlib sqlite3, pytest; later plans add Streamlit,
   OpenRouter, Gmail API. No agent frameworks.
 - **Modes:** live (real APIs, real clock) and replay (recorded input events,
@@ -68,7 +68,7 @@ the work without the user re-explaining anything.
 cd /Users/lubakaper/Desktop/L3Projects/apartment-search
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt  # first time
 .venv/bin/python -m pytest -v                                        # full suite
-.venv/bin/python -m hunt replay tests/fixtures/corpus_smoke.jsonl \
+.venv/bin/python -m doma replay tests/fixtures/corpus_smoke.jsonl \
   --start 2026-07-01T00:00:00+00:00 --until 2026-07-15T00:00:00+00:00
 ```
 

@@ -13,12 +13,12 @@
   Event model, SQLite event store, JSONL corpora, state projection, policy
   engine with stopping rules (terminal states, monthly budget cap,
   neighborhood saturation), Live/Replay clocks, tick loop, replay executor +
-  driver, smoke corpus with end-to-end assertions, `python -m hunt replay` CLI.
+  driver, smoke corpus with end-to-end assertions, `python -m doma replay` CLI.
 - ✅ Verified end-to-end: CLI replay of the smoke corpus produces 74 ticks,
   17 decisions; williamsburg saturates before greenpoint; budget respected;
   two replays produce identical action logs (asserted in tests).
 - Venv uses Python 3.12 (`/opt/homebrew/bin/python3.12`); package installed
-  editable (`pip install -e .`) so `python -m hunt` works outside pytest.
+  editable (`pip install -e .`) so `python -m doma` works outside pytest.
 
 ## Next action
 
@@ -62,11 +62,11 @@ alert email sample.
 | 2026-07-11 | Streamlit UI, not Vercel | Agent is a long-running Python loop + local SQLite; Vercel would need a separate JS app + API + hosted state |
 | 2026-07-11 | Work split into 3 sequential plans | Each ships working, tested software on its own |
 | 2026-07-11 | `iso()` rejects naive datetimes | Quality review: naive datetimes silently convert via local machine time — breaks replay determinism |
-| 2026-07-11 | setuptools src-layout build + editable install added | Plan omission: pytest `pythonpath` doesn't apply to plain `python -m hunt`; the demo command requires an installed package |
+| 2026-07-11 | setuptools src-layout build + editable install added | Plan omission: pytest `pythonpath` doesn't apply to plain `python -m doma`; the demo command requires an installed package |
 
 ## Open questions
 
-- Final project name (working: apartment-search).
+- ~~Final project name~~ — named **Doma** (2026-07-11). Folder still `apartment-search`; rename is Luba's call (it would touch local settings paths).
 - Luba's actual criteria weights + train line — captured via cold-start
   interview when the learner lands (Plan 3), not hardcoded.
 - StreetEasy alert-email HTML structure — capture a real sample before

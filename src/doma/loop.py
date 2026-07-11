@@ -3,11 +3,11 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from hunt.clock import Clock
-from hunt.events import Event
-from hunt.policy import Action, PolicyConfig, decide
-from hunt.state import project
-from hunt.store import EventStore
+from doma.clock import Clock
+from doma.events import Event
+from doma.policy import Action, PolicyConfig, decide
+from doma.state import project
+from doma.store import EventStore
 
 
 class Executor(Protocol):

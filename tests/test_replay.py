@@ -3,12 +3,12 @@ from pathlib import Path
 
 from helpers import ev
 
-from hunt.clock import ReplayClock
-from hunt.corpus import load_corpus
-from hunt.policy import Action, PolicyConfig
-from hunt.replay import ReplayExecutor, run_replay
-from hunt.state import project
-from hunt.store import EventStore
+from doma.clock import ReplayClock
+from doma.corpus import load_corpus
+from doma.policy import Action, PolicyConfig
+from doma.replay import ReplayExecutor, run_replay
+from doma.state import project
+from doma.store import EventStore
 
 FIXTURE = Path(__file__).parent / "fixtures" / "corpus_smoke.jsonl"
 

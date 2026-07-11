@@ -1,5 +1,5 @@
-import hunt
+import doma
 
 
 def test_package_importable() -> None:
-    assert hunt.__version__ == "0.1.0"
+    assert doma.__version__ == "0.1.0"

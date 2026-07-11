@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from hunt.events import INPUT_EVENT_TYPES, Event, from_json, to_json
+from doma.events import INPUT_EVENT_TYPES, Event, from_json, to_json
 
 
 def load_corpus(path: str | Path) -> list[Event]:

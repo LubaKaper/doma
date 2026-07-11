@@ -2,9 +2,9 @@ from datetime import datetime
 
 from helpers import ev
 
-from hunt.policy import (Action, PolicyConfig, budget_exhausted, decide,
+from doma.policy import (Action, PolicyConfig, budget_exhausted, decide,
                          is_terminal, scan_due, stale_neighborhoods)
-from hunt.state import ListingState, project
+from doma.state import ListingState, project
 
 
 def _dt(s: str) -> datetime:

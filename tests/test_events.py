@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from hunt.events import Event, from_json, iso, parse_ts, to_json
+from doma.events import Event, from_json, iso, parse_ts, to_json
 
 
 def test_event_json_round_trip() -> None:
