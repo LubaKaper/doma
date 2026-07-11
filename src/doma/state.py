@@ -20,6 +20,7 @@ class ListingState:
     status: str  # "active" or a TERMINAL_STATUSES member
     first_seen_ts: str
     last_seen_ts: str
+    relist_count: int = 0
 
 
 @dataclass
@@ -54,6 +55,11 @@ def project(events: list[Event]) -> HuntState:
                 state.last_novel_ts[p["neighborhood"]] = e.ts
             else:
                 existing.last_seen_ts = e.ts
+                if existing.status == "dead":
+                    existing.status = "active"
+                    existing.relist_count += 1
+                if p.get("price") is not None:
+                    existing.price = p["price"]
         elif e.type == "listing_updated":
             listing = state.listings.get(p["listing_id"])
             if listing is not None:

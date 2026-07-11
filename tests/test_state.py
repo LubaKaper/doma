@@ -83,3 +83,30 @@ def test_saturated_projection() -> None:
            neighborhood="greenpoint"),
     ])
     assert state.saturated == {"greenpoint"}
+
+
+def test_dead_listing_reappearing_is_a_relist() -> None:
+    state = project([
+        _seen("2026-07-01T09:00:00+00:00", "gp-001"),
+        ev("2026-07-03T09:00:00+00:00", "listing_delisted", listing_id="gp-001"),
+        _seen("2026-07-20T09:00:00+00:00", "gp-001", price=3300),
+    ])
+    listing = state.listings["gp-001"]
+    assert listing.status == "active"
+    assert listing.relist_count == 1
+    assert listing.price == 3300
+
+
+def test_relist_is_not_novel_inventory() -> None:
+    state = project([
+        _seen("2026-07-01T09:00:00+00:00", "gp-001"),
+        ev("2026-07-03T09:00:00+00:00", "listing_delisted", listing_id="gp-001"),
+        _seen("2026-07-20T09:00:00+00:00", "gp-001"),
+    ])
+    # Novelty stays at first sighting; a relist must not reset saturation.
+    assert state.last_novel_ts["greenpoint"] == "2026-07-01T09:00:00+00:00"
+
+
+def test_fresh_listing_has_zero_relists() -> None:
+    state = project([_seen("2026-07-01T09:00:00+00:00", "gp-001")])
+    assert state.listings["gp-001"].relist_count == 0
