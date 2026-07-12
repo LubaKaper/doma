@@ -63,6 +63,13 @@ Replay demo (offline, no API keys, deterministic):
   --start 2026-07-01T00:00:00+00:00 --until 2026-07-15T00:00:00+00:00
 ```
 
+Live mode (needs a free [RentCast key](https://www.rentcast.io/api) in `.env`):
+
+```bash
+.venv/bin/python -m doma scan --city Brooklyn        # one budget-aware tick
+.venv/bin/python -m doma export-corpus --db doma.db my-corpus.jsonl
+```
+
 You'll watch the agent scan daily, then stop scanning each neighborhood as
 its inventory goes stale — `mark_saturated williamsburg` fires on day 9,
 `greenpoint` on day 10 — while never exceeding its monthly API budget. Every
@@ -71,8 +78,8 @@ one of those decisions is asserted in `tests/test_replay.py`.
 ## Roadmap
 
 1. **Core loop** — event store, projection, policy + stopping rules, replay harness ✅
-2. **Ingestion** — RentCast/HPD/stations adapters, cross-source identity + relist detection, live scans, corpus capture ← *next*
-3. **Scoring & bait** — LLM fact extraction, scorer, bait detector wired into the policy ladder
+2. **Ingestion** — RentCast/HPD adapters, cross-source identity + relist detection, live scans, corpus capture ✅ *(stations + email parser pending external inputs)*
+3. **Scoring & bait** — LLM fact extraction, scorer, bait detector wired into the policy ladder ← *next*
 4. **Learning, outreach, UI** — preference learner, outreach drafter, Streamlit dashboard, golden demo corpus
 
 ## Prior work

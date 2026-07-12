@@ -3,7 +3,7 @@
 > Update this file after every substantial change (see AGENTS.md §Docs
 > contract). A fresh session starts by reading this.
 
-**Last updated:** 2026-07-11 (Plan 1 shipped)
+**Last updated:** 2026-07-11 (Plan 2 executed except two gated tasks)
 
 ## Current state
 
@@ -22,18 +22,23 @@
 
 ## Next action
 
-Execute **Plan 2 — Ingestion** (`docs/superpowers/plans/2026-07-11-doma-ingestion.md`):
-snapshot schema, resolver + relist projection, differ, RentCast/HPD/stations
-adapters, LiveExecutor, `doma scan` + `doma export-corpus` CLI. Task 10
-(StreetEasy email parser) stays gated until Luba captures a real alert email
-to `tests/fixtures/streeteasy_alert_sample.html`.
+Unblock the two gated Plan 2 tasks (both need Luba):
+1. **Task 7 (stations/commute):** verify the MTA stations dataset —
+   `curl -s "https://data.ny.gov/resource/39hk-dx4f.json?\$limit=2"` — then
+   follow Plan 2 Task 7 (fixture capture, tests, stations.py). The earlier
+   attempt was blocked (network permission denied for data.ny.gov).
+2. **Task 10 (email parser):** save a real StreetEasy alert email to
+   `tests/fixtures/streeteasy_alert_sample.html`.
+3. **Task 5 Step 7:** get a RentCast key (rentcast.io/api), run
+   `scripts/capture_rentcast.py Brooklyn NY`, re-run rentcast tests.
+Then write **Plan 3 — Scoring & bait**.
 
 ## Plan progress
 
 | Plan | Scope | Status |
 |---|---|---|
 | 1 — Core loop | events, store, corpus, projection, policy + stopping rules, clocks, tick loop, replay, smoke corpus, CLI | ✅ Shipped (44 tests) |
-| 2 — Ingestion | snapshot, resolver + relist, differ, RentCast/HPD/stations adapters, LiveExecutor, scan/export CLI, email parser (gated) | Plan written, not started |
+| 2 — Ingestion | snapshot, resolver + relist, differ, RentCast/HPD adapters, LiveExecutor, scan/export CLI | ✅ Executed (69 tests) except Task 7 stations (fetch blocked), Task 10 email parser (needs sample), Task 5.7 real capture (needs key) |
 | 3 — Scoring & bait | LLM fact extraction, scorer, bait detector, enrichment actions in policy ladder, Gmail live fetch | Not written |
 | 4 — Learning, outreach, UI | preference learner, outreach drafter, Streamlit dashboard, golden demo corpus | Not written |
 

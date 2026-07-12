@@ -63,7 +63,7 @@ types needed), `replay.py` (use shared `actions.py`), `__main__.py` (+`scan`,
 - Create: `src/doma/snapshot.py`
 - Test: `tests/test_snapshot.py`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `tests/test_snapshot.py`:
 ```python
@@ -102,12 +102,12 @@ def test_snapshot_is_immutable() -> None:
         s.price = 9999  # type: ignore[misc]
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `.venv/bin/python -m pytest tests/test_snapshot.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'doma.snapshot'`
 
-- [ ] **Step 3: Implement `snapshot.py`**
+- [x] **Step 3: Implement `snapshot.py`**
 
 `src/doma/snapshot.py`:
 ```python
@@ -149,12 +149,12 @@ class Snapshot:
             raise ValueError("Snapshot.neighborhood must be non-empty")
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `.venv/bin/python -m pytest tests/test_snapshot.py -v`
 Expected: PASS (3 passed)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/doma/snapshot.py tests/test_snapshot.py
@@ -169,7 +169,7 @@ git commit -m "feat(snapshot): canonical adapter output shape with None-honesty"
 - Create: `src/doma/resolver.py`
 - Test: `tests/test_resolver.py`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `tests/test_resolver.py` (`canonical_id` itself is exercised in Task 4's
 differ tests, where real Snapshots exist):
@@ -215,12 +215,12 @@ Snapshots exist; drop the unused import above (write the test file WITHOUT
 that import line — it is shown here only to flag that canonical_id belongs to
 this module).
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `.venv/bin/python -m pytest tests/test_resolver.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'doma.resolver'`
 
-- [ ] **Step 3: Implement `resolver.py`**
+- [x] **Step 3: Implement `resolver.py`**
 
 `src/doma/resolver.py`:
 ```python
@@ -274,12 +274,12 @@ def canonical_id(snapshot: Snapshot) -> str:
                         fallback=f"{snapshot.source}:{snapshot.source_id}")
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `.venv/bin/python -m pytest tests/test_resolver.py -v`
 Expected: PASS (5 passed)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/doma/resolver.py tests/test_resolver.py
@@ -294,7 +294,7 @@ git commit -m "feat(resolver): street normalization and cross-source identity ke
 - Modify: `src/doma/state.py`
 - Test: append to `tests/test_state.py`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Append to `tests/test_state.py`:
 ```python
@@ -325,13 +325,13 @@ def test_fresh_listing_has_zero_relists() -> None:
     assert state.listings["gp-001"].relist_count == 0
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `.venv/bin/python -m pytest tests/test_state.py -v`
 Expected: FAIL — `AttributeError: ... no attribute 'relist_count'` (and the
 relist test fails on status staying "dead")
 
-- [ ] **Step 3: Extend `state.py`**
+- [x] **Step 3: Extend `state.py`**
 
 In `ListingState`, add one field after `last_seen_ts`:
 ```python
@@ -354,13 +354,13 @@ with:
                     existing.price = p["price"]
 ```
 
-- [ ] **Step 4: Run the full suite**
+- [x] **Step 4: Run the full suite**
 
 Run: `.venv/bin/python -m pytest -v`
 Expected: PASS (47 passed — all Plan 1 tests still green; the smoke corpus
 has no relists so its assertions are unaffected)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/doma/state.py tests/test_state.py
@@ -375,7 +375,7 @@ git commit -m "feat(state): dead listings reappearing count as relists, not nove
 - Create: `src/doma/diff.py`
 - Test: `tests/test_diff.py`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `tests/test_diff.py`:
 ```python
@@ -448,12 +448,12 @@ def test_same_unit_from_two_sources_is_one_listing() -> None:
     assert [e.type for e in events] == ["listing_updated"]
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `.venv/bin/python -m pytest tests/test_diff.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'doma.diff'`
 
-- [ ] **Step 3: Implement `diff.py`**
+- [x] **Step 3: Implement `diff.py`**
 
 `src/doma/diff.py`:
 ```python
@@ -512,13 +512,13 @@ def diff_scan(state: HuntState, snapshots: list[Snapshot], source: str,
     return events
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `.venv/bin/python -m pytest tests/test_diff.py -v`
 Expected: PASS (5 passed). Then full suite: `.venv/bin/python -m pytest -q` —
 no regressions.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/doma/diff.py tests/test_diff.py
@@ -538,7 +538,7 @@ git commit -m "feat(diff): snapshot differ emits input events with source-scoped
 - Create: `.env.example`
 - Test: `tests/test_rentcast.py`
 
-- [ ] **Step 1: Create the fixture**
+- [x] **Step 1: Create the fixture**
 
 `tests/fixtures/rentcast_sample.json` — schema-faithful to the documented
 [property-listings schema](https://developers.rentcast.io/reference/property-listings-schema);
@@ -595,7 +595,7 @@ real capture (TDD.md fixture policy):
 }
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 `tests/test_rentcast.py`:
 ```python
@@ -639,12 +639,12 @@ def test_to_snapshot_missing_required_field_raises() -> None:
         to_snapshot(broken)
 ```
 
-- [ ] **Step 3: Run tests to verify they fail**
+- [x] **Step 3: Run tests to verify they fail**
 
 Run: `.venv/bin/python -m pytest tests/test_rentcast.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'doma.adapters'`
 
-- [ ] **Step 4: Implement the adapter**
+- [x] **Step 4: Implement the adapter**
 
 `src/doma/adapters/__init__.py`:
 ```python
@@ -763,12 +763,12 @@ RENTCAST_API_KEY=
 
 Run `.venv/bin/pip install -r requirements.txt`.
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `.venv/bin/python -m pytest tests/test_rentcast.py -v`
 Expected: PASS (3 passed)
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/doma/adapters tests/test_rentcast.py tests/fixtures/rentcast_sample.json scripts/capture_rentcast.py requirements.txt .env.example
@@ -791,7 +791,7 @@ and commit `fix(rentcast): align mapping with captured payload`.
 - Create: `tests/fixtures/hpd_sample.json`
 - Test: `tests/test_hpd.py`
 
-- [ ] **Step 1: Capture a REAL fixture (free, no key)**
+- [x] **Step 1: Capture a REAL fixture (free, no key)**
 
 Run:
 ```bash
@@ -802,7 +802,7 @@ curl -s "https://data.cityofnewyork.us/resource/csn4-vhvf.json?\$limit=5&boro=BR
 Confirm the records contain `housenumber`, `streetname`, `boro`, `class`,
 `currentstatus` (verified present 2026-07-11).
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 `tests/test_hpd.py`:
 ```python
@@ -841,12 +841,12 @@ def test_enrichment_event_shape() -> None:
     assert "class_c" in event.payload
 ```
 
-- [ ] **Step 3: Run tests to verify they fail**
+- [x] **Step 3: Run tests to verify they fail**
 
 Run: `.venv/bin/python -m pytest tests/test_hpd.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'doma.adapters.hpd'`
 
-- [ ] **Step 4: Implement `hpd.py`**
+- [x] **Step 4: Implement `hpd.py`**
 
 `src/doma/adapters/hpd.py`:
 ```python
@@ -902,12 +902,12 @@ def to_enrichment_event(listing_id: str, summary: dict[str, int],
                           "kind": "hpd_violations", **summary})
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `.venv/bin/python -m pytest tests/test_hpd.py -v`
 Expected: PASS (3 passed)
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/doma/adapters/hpd.py tests/test_hpd.py tests/fixtures/hpd_sample.json
@@ -1102,7 +1102,7 @@ git commit -m "feat(stations): MTA station index with nearest-station walk dista
 - Create: `src/doma/live.py`
 - Test: `tests/test_live.py`
 
-- [ ] **Step 1: Extract the shared internal-action helper (refactor, tests exist)**
+- [x] **Step 1: Extract the shared internal-action helper (refactor, tests exist)**
 
 `src/doma/actions.py`:
 ```python
@@ -1142,7 +1142,7 @@ refactor; behavior identical).
 
 Commit: `git commit -am "refactor(actions): share internal-action events between executors"`
 
-- [ ] **Step 2: Write the failing LiveExecutor tests**
+- [x] **Step 2: Write the failing LiveExecutor tests**
 
 `tests/test_live.py`:
 ```python
@@ -1198,12 +1198,12 @@ def test_sleep_returns_no_events() -> None:
                                    reason="test")) == []
 ```
 
-- [ ] **Step 3: Run tests to verify they fail**
+- [x] **Step 3: Run tests to verify they fail**
 
 Run: `.venv/bin/python -m pytest tests/test_live.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'doma.live'`
 
-- [ ] **Step 4: Implement `live.py`**
+- [x] **Step 4: Implement `live.py`**
 
 `src/doma/live.py`:
 ```python
@@ -1250,12 +1250,12 @@ class LiveExecutor:
         raise ValueError(f"live executor got unknown action: {action.type}")
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `.venv/bin/python -m pytest -q`
 Expected: all tests pass, no regressions.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/doma/live.py tests/test_live.py
@@ -1269,7 +1269,7 @@ git commit -m "feat(live): LiveExecutor with injected fetcher and real diffing"
 **Files:**
 - Modify: `src/doma/__main__.py`
 
-- [ ] **Step 1: Add the subcommands**
+- [x] **Step 1: Add the subcommands**
 
 Extend `main()` in `src/doma/__main__.py` — after the existing `replay`
 subparser, add:
@@ -1328,7 +1328,7 @@ Note: `run_tick` decides via the policy — if a scan is not due or the budget
 is exhausted, `doma scan` prints the sleep decision and appends nothing.
 That is correct behavior, not a bug: the budget is enforced everywhere.
 
-- [ ] **Step 2: Verify by hand (no key needed for the refusal path)**
+- [x] **Step 2: Verify by hand (no key needed for the refusal path)**
 
 Run: `.venv/bin/python -m doma scan --city Brooklyn` with no key set.
 Expected: exits with `RENTCAST_API_KEY not set (see .env.example)`.
@@ -1338,7 +1338,7 @@ Expected: `wrote 0 input events to /tmp/out.jsonl`.
 
 Run the full suite: `.venv/bin/python -m pytest -q` — no regressions.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/doma/__main__.py
