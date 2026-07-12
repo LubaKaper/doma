@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from doma.actions import saturation_event, scan_bookkeeping
 from doma.clock import ReplayClock
 from doma.events import INPUT_EVENT_TYPES, Event, iso
 from doma.loop import run_tick
@@ -40,15 +41,9 @@ class ReplayExecutor:
         now_iso = iso(self._clock.now())
         if action.type == "scan_rentcast":
             due = self._take_due(SCAN_DELIVERED, now_iso)
-            return due + [
-                Event(ts=now_iso, type="budget_spent",
-                      payload={"resource": "rentcast_scan"}),
-                Event(ts=now_iso, type="scan_completed",
-                      payload={"source": "rentcast"}),
-            ]
+            return due + scan_bookkeeping(now_iso)
         if action.type == "mark_saturated":
-            return [Event(ts=now_iso, type="neighborhood_saturated",
-                          payload={"neighborhood": action.target})]
+            return [saturation_event(action, now_iso)]
         if action.type == "sleep":
             self._clock.advance()
             return self._take_due(PUSH_DELIVERED, iso(self._clock.now()))
