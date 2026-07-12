@@ -1,0 +1,48 @@
+{
+  "_fixture_note": "SYNTHETIC but schema-faithful to developers.rentcast.io/reference/property-listings-schema (verified 2026-07-11). Replace with real capture via scripts/capture_rentcast.py before relying on optional-field shapes.",
+  "listings": [
+    {
+      "id": "1208-Clay-Ave,-Apt-4N,-Bronx,-NY-10456",
+      "formattedAddress": "1208 Clay Ave, Apt 4N, Bronx, NY 10456",
+      "addressLine1": "1208 Clay Ave",
+      "addressLine2": "Apt 4N",
+      "city": "Bronx",
+      "state": "NY",
+      "zipCode": "10456",
+      "latitude": 40.8302,
+      "longitude": -73.9042,
+      "propertyType": "Apartment",
+      "bedrooms": 2,
+      "bathrooms": 1,
+      "squareFootage": 850,
+      "yearBuilt": 1931,
+      "status": "Active",
+      "price": 2400,
+      "listedDate": "2026-06-28T00:00:00.000Z",
+      "removedDate": null,
+      "lastSeenDate": "2026-07-10T00:00:00.000Z",
+      "daysOnMarket": 12
+    },
+    {
+      "id": "55-Nassau-Ave,-Brooklyn,-NY-11222",
+      "formattedAddress": "55 Nassau Ave, Brooklyn, NY 11222",
+      "addressLine1": "55 Nassau Ave",
+      "addressLine2": null,
+      "city": "Brooklyn",
+      "state": "NY",
+      "zipCode": "11222",
+      "latitude": 40.7237,
+      "longitude": -73.9509,
+      "propertyType": "Apartment",
+      "bedrooms": 1,
+      "bathrooms": 1,
+      "squareFootage": null,
+      "status": "Active",
+      "price": 3100,
+      "listedDate": "2026-07-05T00:00:00.000Z",
+      "removedDate": null,
+      "lastSeenDate": "2026-07-10T00:00:00.000Z",
+      "daysOnMarket": 5
+    }
+  ]
+}
