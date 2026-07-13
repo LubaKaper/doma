@@ -65,3 +65,12 @@ def test_same_unit_from_two_sources_is_one_listing() -> None:
                        "2026-07-11T09:00:00+00:00")
     # Same canonical id -> a sighting, not a new listing.
     assert [e.type for e in events] == ["listing_updated"]
+
+
+def test_incremental_source_never_delists() -> None:
+    first = diff_scan(project([]), [_snap()], "rentcast", TS)
+    state = project(first)
+    # An empty incremental sighting (alert email) must not delist anything.
+    events = diff_scan(state, [], "rentcast", "2026-07-11T09:00:00+00:00",
+                       full_snapshot=False)
+    assert events == []

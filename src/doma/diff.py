@@ -30,8 +30,13 @@ def _seen_payload(lid: str, snap: Snapshot) -> dict[str, Any]:
 
 
 def diff_scan(state: HuntState, snapshots: list[Snapshot], source: str,
-              ts: str) -> list[Event]:
-    """Compare a full scan snapshot from one source against current state."""
+              ts: str, full_snapshot: bool = True) -> list[Event]:
+    """Compare one source's sighting against current state.
+
+    full_snapshot=True (a scan) also delists this source's listings that
+    are absent. Incremental sources (alert emails carry only NEW listings)
+    pass False — absence there means nothing.
+    """
     events: list[Event] = []
     seen_ids: set[str] = set()
     for snap in snapshots:
@@ -50,6 +55,8 @@ def diff_scan(state: HuntState, snapshots: list[Snapshot], source: str,
             events.append(Event(ts=ts, type="listing_updated",
                                 payload={"listing_id": lid,
                                          "price": snap.price}))
+    if not full_snapshot:
+        return events
     for lid, listing in state.listings.items():
         if (listing.source == source and listing.status == "active"
                 and lid not in seen_ids):

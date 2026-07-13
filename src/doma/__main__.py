@@ -103,6 +103,26 @@ def _cmd_run(args: argparse.Namespace) -> None:
             break
 
 
+def _cmd_ingest_email(args: argparse.Namespace) -> None:
+    """Parse a saved StreetEasy alert (.eml) into the event store."""
+    from datetime import datetime, timezone
+
+    from doma.adapters.streeteasy_email import extract_html, parse_alert_html
+    from doma.diff import diff_scan
+    from doma.events import iso
+    from doma.state import project
+
+    store = EventStore(args.db)
+    snaps = parse_alert_html(extract_html(args.eml))
+    state = project(store.read_all())
+    events = diff_scan(state, snaps, "streeteasy_email",
+                       iso(datetime.now(timezone.utc)), full_snapshot=False)
+    for e in events:
+        store.append(e)
+    print(f"{len(snaps)} listings in alert -> {len(events)} events "
+          f"appended to {args.db}")
+
+
 def _cmd_rank(args: argparse.Namespace) -> None:
     """Ranked view of scored listings: the market as Doma sees it."""
     from doma.state import project
@@ -167,6 +187,11 @@ def main() -> None:
     rn.add_argument("--state", default="NY")
     rn.add_argument("--ticks", type=int, default=40)
 
+    ie = sub.add_parser("ingest-email",
+                        help="parse a saved StreetEasy alert .eml into the db")
+    ie.add_argument("eml", help="path to the saved .eml file")
+    ie.add_argument("--db", default="doma.db")
+
     rk = sub.add_parser("rank", help="ranked view of scored listings")
     rk.add_argument("--db", default="doma.db")
     rk.add_argument("--top", type=int, default=15)
@@ -178,6 +203,8 @@ def main() -> None:
         _cmd_scan(args)
     elif args.command == "export-corpus":
         _cmd_export_corpus(args)
+    elif args.command == "ingest-email":
+        _cmd_ingest_email(args)
     elif args.command == "run":
         _cmd_run(args)
     elif args.command == "rank":
