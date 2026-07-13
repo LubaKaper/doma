@@ -3,7 +3,7 @@
 > Update this file after every substantial change (see AGENTS.md §Docs
 > contract). A fresh session starts by reading this.
 
-**Last updated:** 2026-07-13 (first real scan: 500 Brooklyn listings in doma.db)
+**Last updated:** 2026-07-13 (stations/commute shipped; only email parser still gated)
 
 ## Current state
 
@@ -22,14 +22,11 @@
 
 ## Next action
 
-Unblock the two gated Plan 2 tasks (both need Luba):
-1. **Task 7 (stations/commute):** verify the MTA stations dataset —
-   `curl -s "https://data.ny.gov/resource/39hk-dx4f.json?\$limit=2"` — then
-   follow Plan 2 Task 7 (fixture capture, tests, stations.py). The earlier
-   attempt was blocked (network permission denied for data.ny.gov).
-2. **Task 10 (email parser):** save a real StreetEasy alert email to
-   `tests/fixtures/streeteasy_alert_sample.html`.
-Then write **Plan 3 — Scoring & bait**. (RentCast key is live: real fixture
+Write **Plan 3 — Scoring & bait** (LLM fact extraction, scorer, bait
+detector, enrichment actions in the policy ladder). One Plan 2 task remains
+gated: **Task 10 (email parser)** — Luba has StreetEasy alerts set up
+(2026-07-13); when one arrives, save it as
+`tests/fixtures/streeteasy_alert_sample.eml` (Gmail: ⋮ > Download message). (RentCast key is live: real fixture
 captured 2026-07-13, first real scan appended 502 events to local `doma.db`,
 2/50 monthly calls used. `doma.db` is local-only, gitignored.)
 
@@ -38,7 +35,7 @@ captured 2026-07-13, first real scan appended 502 events to local `doma.db`,
 | Plan | Scope | Status |
 |---|---|---|
 | 1 — Core loop | events, store, corpus, projection, policy + stopping rules, clocks, tick loop, replay, smoke corpus, CLI | ✅ Shipped (44 tests) |
-| 2 — Ingestion | snapshot, resolver + relist, differ, RentCast/HPD adapters, LiveExecutor, scan/export CLI | ✅ Executed (69 tests) except Task 7 stations (fetch blocked), Task 10 email parser (needs sample), Task 5.7 real capture (needs key) |
+| 2 — Ingestion | snapshot, resolver + relist, differ, RentCast/HPD/stations adapters, LiveExecutor, scan/export CLI | ✅ Shipped (73 tests, real fixtures) — only Task 10 email parser gated on an alert-email sample |
 | 3 — Scoring & bait | LLM fact extraction, scorer, bait detector, enrichment actions in policy ladder, Gmail live fetch | Not written |
 | 4 — Learning, outreach, UI | preference learner, outreach drafter, Streamlit dashboard, golden demo corpus | Not written |
 

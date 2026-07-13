@@ -924,7 +924,7 @@ git commit -m "feat(hpd): building-health enricher over verified Socrata fields"
 - Create: `tests/fixtures/stations_sample.json`
 - Test: `tests/test_stations.py`
 
-- [ ] **Step 1: Verify the dataset BEFORE coding (do not trust this plan)**
+- [x] **Step 1: Verify the dataset BEFORE coding (do not trust this plan)**
 
 The MTA subway-stations dataset is expected at data.ny.gov (dataset id
 `39hk-dx4f`) with fields like `stop_name`, `daytime_routes`, `gtfs_latitude`,
@@ -940,7 +940,7 @@ correction in the commit message. Then capture the fixture:
 curl -s "https://data.ny.gov/resource/39hk-dx4f.json?\$limit=1000" -o tests/fixtures/stations_sample.json
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 `tests/test_stations.py` (adjust field names ONLY if Step 1 found different
 ones):
@@ -982,12 +982,12 @@ def test_nearest_station_filters_by_route() -> None:
     assert station.name == "L stop"
 ```
 
-- [ ] **Step 3: Run tests to verify they fail**
+- [x] **Step 3: Run tests to verify they fail**
 
 Run: `.venv/bin/python -m pytest tests/test_stations.py -v`
 Expected: FAIL — `ModuleNotFoundError`
 
-- [ ] **Step 4: Implement `stations.py`**
+- [x] **Step 4: Implement `stations.py`**
 
 `src/doma/adapters/stations.py`:
 ```python
@@ -1080,12 +1080,12 @@ if __name__ == "__main__":
     main()
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `.venv/bin/python -m pytest tests/test_stations.py -v`
 Expected: PASS (3 passed)
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/doma/adapters/stations.py scripts/capture_stations.py tests/test_stations.py tests/fixtures/stations_sample.json
