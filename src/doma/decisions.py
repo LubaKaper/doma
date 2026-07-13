@@ -33,3 +33,19 @@ def scorecard_event(listing_id: str, verdict: str,
     return Event(ts=ts, type="viewing_scored",
                  payload={"listing_id": listing_id, "verdict": verdict,
                           "ratings": ratings})
+
+
+def weights_updated_event(weights: dict[str, float],
+                          previous: dict[str, float],
+                          evidence: dict, ts: str) -> Event:
+    """Approved weight update. Validates the table before it becomes truth."""
+    if set(weights) != CRITERIA:
+        raise ValueError(f"weights must cover exactly the criteria "
+                         f"{sorted(CRITERIA)}")
+    if any(w < 0 for w in weights.values()):
+        raise ValueError("weights must be non-negative")
+    if abs(sum(weights.values()) - 1.0) > 1e-6:
+        raise ValueError(f"weights must sum to 1, got {sum(weights.values())}")
+    return Event(ts=ts, type="weights_updated",
+                 payload={"weights": weights, "previous": previous,
+                          "evidence": evidence})

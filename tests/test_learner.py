@@ -63,3 +63,36 @@ def test_weights_updated_fold_and_rescore_trigger() -> None:
     assert state.weights_ts == "2026-07-11T09:00:00+00:00"
     # scorecarded listing l-0 is status=viewed?? no - not marked; still active
     assert "l-0" in stale_scores(state)  # weight change makes scores stale
+
+
+def test_multi_criterion_proposal_respects_all_invariants() -> None:
+    # 5 criteria rated extreme (up), fee_burden neutral (down) — the case
+    # where naive renormalization breaches the floor and the cap.
+    from doma.learner import WEIGHT_FLOOR
+    ratings = [{"rent_value": 1, "commute": 5, "building_health": 1,
+                "laundry": 5, "light": 1, "fee_burden": 3} for _ in range(3)]
+    state = project(_events_with_ratings(ratings))
+    proposal = propose_weights(state)
+    if proposal is None:
+        return  # a null proposal is a legal outcome; invariants vacuous
+    assert abs(sum(proposal.weights.values()) - 1.0) < 1e-9
+    for c, new in proposal.weights.items():
+        assert new >= WEIGHT_FLOOR - 1e-9, f"{c} breached floor: {new}"
+        assert abs(new - proposal.previous[c]) <= MAX_STEP + 1e-9, \
+            f"{c} exceeded cap: {new - proposal.previous[c]}"
+    # fee_burden was rated neutral -> must not rise
+    assert proposal.weights["fee_burden"] <= proposal.previous["fee_burden"] + 1e-9
+
+
+def test_all_neutral_never_inverts_direction() -> None:
+    # Every rated criterion neutral (down); unrated rent_value absorbs.
+    ratings = [{"commute": 3, "building_health": 3, "laundry": 3,
+                "light": 3, "fee_burden": 3} for _ in range(3)]
+    state = project(_events_with_ratings(ratings))
+    proposal = propose_weights(state)
+    assert proposal is not None
+    for c in ("commute", "building_health", "laundry", "light", "fee_burden"):
+        assert proposal.weights[c] <= proposal.previous[c] + 1e-9, \
+            f"{c} was rated neutral but went UP"
+    assert (proposal.weights["rent_value"] - proposal.previous["rent_value"]
+            <= MAX_STEP + 1e-9)

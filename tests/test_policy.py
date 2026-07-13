@@ -146,3 +146,19 @@ def test_new_activity_makes_score_stale_again() -> None:
     ])
     action = decide(state, _dt("2026-07-02T10:00:00+00:00"), CFG)
     assert action.type == "score_batch"
+
+
+def test_scan_skipped_when_all_known_neighborhoods_saturated() -> None:
+    state = project([
+        ev("2026-07-01T09:00:00+00:00", "listing_seen", listing_id="s-1",
+           source="rentcast", neighborhood="11222", price=3000),
+        ev("2026-07-01T09:10:00+00:00", "enrichment_attempted",
+           listing_id="s-1", ok=True),
+        ev("2026-07-01T09:20:00+00:00", "score_computed",
+           listing_id="s-1", score=0.5, confidence=0.5),
+        ev("2026-07-09T09:00:00+00:00", "neighborhood_saturated",
+           neighborhood="11222"),
+    ])
+    action = decide(state, _dt("2026-07-10T09:00:00+00:00"), CFG)
+    assert action.type == "sleep"
+    assert "saturated" in action.reason

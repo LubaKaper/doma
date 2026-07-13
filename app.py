@@ -14,10 +14,10 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))  # editable-pth quirk gua
 
 import streamlit as st
 
-from doma.decisions import mark_listing_event, scorecard_event
-from doma.events import Event
-from doma.learner import MIN_RATINGS, collect_ratings, propose_weights
+from doma.decisions import (mark_listing_event, scorecard_event,
+                            weights_updated_event)
 from doma.events import iso
+from doma.learner import MIN_RATINGS, collect_ratings, propose_weights
 from doma.scorer import DEFAULT_WEIGHTS
 from doma.state import ListingState, project
 from doma.store import EventStore
@@ -35,7 +35,12 @@ def _now_iso() -> str:
 
 
 def _subscore_bars(listing: ListingState) -> str:
-    """Horizontal magnitude bars; unknown criteria render as labeled gaps."""
+    """Horizontal magnitude bars; unknown criteria render as labeled gaps.
+
+    SAFETY: this HTML is rendered with unsafe_allow_html — never interpolate
+    listing-derived strings (addresses etc.) here; only static labels and
+    numbers computed locally.
+    """
     rows = []
     for criterion in DEFAULT_WEIGHTS:
         value = listing.subscores.get(criterion)
@@ -80,10 +85,10 @@ def _listing_card(store: EventStore, listing: ListingState) -> None:
             st.markdown("**Why this score**")
             st.markdown(_subscore_bars(listing), unsafe_allow_html=True)
             if listing.bait_flags:
-                st.warning("Bait signals: " + ", ".join(listing.bait_flags)
-                           + f" — relisted {listing.relist_count}× "
-                           if listing.relist_count else
-                           "Bait signals: " + ", ".join(listing.bait_flags))
+                detail = (f" — relisted {listing.relist_count}×"
+                          if listing.relist_count else "")
+                st.warning("Bait signals: "
+                           + ", ".join(listing.bait_flags) + detail)
             if len(listing.price_history) > 1:
                 st.markdown("**Price history**")
                 st.table({"when": [h[0][:10] for h in listing.price_history],
@@ -239,10 +244,9 @@ def main() -> None:
                                 f"(ratings: {ev_.get('ratings', '—')})")
             st.markdown("\n".join(rows))
             if st.button("✅ Approve — apply new weights and rescore"):
-                store.append(Event(ts=_now_iso(), type="weights_updated",
-                                   payload={"weights": proposal.weights,
-                                            "previous": proposal.previous,
-                                            "evidence": proposal.evidence}))
+                store.append(weights_updated_event(
+                    proposal.weights, proposal.previous,
+                    proposal.evidence, ts=_now_iso()))
                 st.success("Weights updated — run `doma run` to rescore "
                            "everything under the new taste model.")
                 st.rerun()

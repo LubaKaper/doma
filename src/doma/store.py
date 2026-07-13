@@ -23,6 +23,10 @@ class EventStore:
     def __init__(self, path: str | Path = ":memory:") -> None:
         try:
             self._conn = sqlite3.connect(str(path))
+            # Dashboard and CLI share the file: WAL + a busy timeout turn
+            # concurrent appends into short waits instead of hard errors.
+            self._conn.execute("PRAGMA journal_mode=WAL")
+            self._conn.execute("PRAGMA busy_timeout=5000")
             self._conn.execute(_SCHEMA)
             self._conn.commit()
         except sqlite3.Error as exc:

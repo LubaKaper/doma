@@ -201,3 +201,13 @@ def test_subscores_folded_from_score_event() -> None:
     ])
     assert state.listings["gp-001"].subscores == {"rent_value": 0.8,
                                                   "light": None}
+
+
+def test_novel_listing_desaturates_neighborhood() -> None:
+    state = project([
+        _seen("2026-07-01T09:00:00+00:00", "gp-001"),
+        ev("2026-07-09T09:00:00+00:00", "neighborhood_saturated",
+           neighborhood="greenpoint"),
+        _seen("2026-07-20T09:00:00+00:00", "gp-002"),  # novel inventory
+    ])
+    assert "greenpoint" not in state.saturated

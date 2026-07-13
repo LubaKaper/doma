@@ -43,12 +43,53 @@ def collect_ratings(state: HuntState) -> dict[str, list[int]]:
     return out
 
 
+def _rebalance(current: dict[str, float],
+               steps: dict[str, float]) -> dict[str, float] | None:
+    """Zero-sum rebalance keeping every invariant by construction.
+
+    Stepped criteria move toward their step (never past it, never inverted);
+    unstepped criteria absorb the counterweight, each capped at MAX_STEP and
+    floored at WEIGHT_FLOOR. If the absorbers can't take it all, the steps
+    are scaled toward zero until the books balance. Sum stays exactly 1.
+    """
+    net: dict[str, float] = {}
+    for c, w in current.items():
+        d = steps.get(c, 0.0)
+        net[c] = max(d, WEIGHT_FLOOR - w) if d < 0 else d
+    surplus = sum(net.values())
+    absorbers = [c for c in current if c not in steps]
+    for _ in range(len(current) + 1):
+        if abs(surplus) < 1e-12 or not absorbers:
+            break
+        share = -surplus / len(absorbers)
+        still_open: list[str] = []
+        for c in absorbers:
+            lo = max(-MAX_STEP, WEIGHT_FLOOR - current[c])
+            clamped = max(lo, min(MAX_STEP, net[c] + share))
+            surplus += clamped - net[c]
+            net[c] = clamped
+            if lo < net[c] < MAX_STEP:
+                still_open.append(c)
+        absorbers = still_open
+    if abs(surplus) > 1e-9:
+        stepped_total = sum(net[c] for c in steps)
+        if abs(stepped_total) < 1e-12:
+            return None
+        scale = max(0.0, min(1.0, 1.0 - surplus / stepped_total))
+        for c in steps:
+            net[c] *= scale
+        surplus = sum(net.values())
+        if abs(surplus) > 1e-9:
+            return None
+    return {c: current[c] + net[c] for c in current}
+
+
 def propose_weights(state: HuntState) -> Proposal | None:
-    """Bounded, renormalized weight proposal — or None if nothing to say."""
+    """Bounded, zero-sum weight proposal — or None if nothing to say."""
     current = dict(state.weights)
     ratings = collect_ratings(state)
     evidence: dict[str, Any] = {}
-    proposed = dict(current)
+    steps: dict[str, float] = {}
     for criterion, rs in ratings.items():
         if criterion not in current or len(rs) < MIN_RATINGS:
             continue
@@ -56,14 +97,15 @@ def propose_weights(state: HuntState) -> Proposal | None:
         # salience 0.5 is the pivot: extreme reactions push the weight up,
         # indifference pushes it down; capped either way.
         step = max(-MAX_STEP, min(MAX_STEP, 2 * MAX_STEP * (salience - 0.5)))
-        proposed[criterion] = max(WEIGHT_FLOOR, current[criterion] + step)
+        steps[criterion] = step
         evidence[criterion] = {"ratings": rs, "salience": round(salience, 3),
                                "step": round(step, 4)}
     if not evidence:
         return None
-    total = sum(proposed.values())
-    normalized = {k: v / total for k, v in proposed.items()}
-    if all(abs(normalized[k] - current[k]) < MIN_MEANINGFUL_DELTA
+    proposed = _rebalance(current, steps)
+    if proposed is None:
+        return None
+    if all(abs(proposed[k] - current[k]) < MIN_MEANINGFUL_DELTA
            for k in current):
         return None
-    return Proposal(weights=normalized, previous=current, evidence=evidence)
+    return Proposal(weights=proposed, previous=current, evidence=evidence)

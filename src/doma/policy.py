@@ -107,6 +107,10 @@ def decide(state: HuntState, now: datetime, config: PolicyConfig) -> Action:
         if budget_exhausted(state, now, config):
             return Action(type="sleep", target=None,
                           reason="scan due but monthly budget exhausted")
+        if (state.last_novel_ts
+                and set(state.last_novel_ts) <= state.saturated):
+            return Action(type="sleep", target=None,
+                          reason="all known neighborhoods saturated")
         return Action(type="scan_rentcast", target=None,
                       reason="scan interval elapsed")
     return Action(type="sleep", target=None, reason="nothing to do")

@@ -91,6 +91,7 @@ def project(events: list[Event]) -> HuntState:
                 _record_price(listing, e.ts, p.get("price"))
                 state.listings[lid] = listing
                 state.last_novel_ts[p["neighborhood"]] = e.ts
+                state.saturated.discard(p["neighborhood"])
             else:
                 existing.last_seen_ts = e.ts
                 if existing.status == "dead":

@@ -105,7 +105,10 @@ def score_listing(listing: ListingState, state: HuntState,
     known = {k: v for k, v in subscores.items() if v is not None}
     if not known:
         return None
-    known_weight = sum(weights[k] for k in known)
-    score = sum(weights[k] * v for k, v in known.items()) / known_weight
-    confidence = known_weight / sum(weights.values())
+    known_weight = sum(weights.get(k, 0.0) for k in known)
+    total_weight = sum(weights.values())
+    if known_weight <= 0 or total_weight <= 0:
+        return None
+    score = sum(weights.get(k, 0.0) * v for k, v in known.items()) / known_weight
+    confidence = known_weight / total_weight
     return ScoreResult(score=score, confidence=confidence, subscores=subscores)
