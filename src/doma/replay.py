@@ -3,11 +3,14 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from doma.actions import saturation_event, scan_bookkeeping
+from doma.actions import (saturation_event, scan_bookkeeping,
+                          score_batch_events)
 from doma.clock import ReplayClock
 from doma.events import INPUT_EVENT_TYPES, Event, iso
 from doma.loop import run_tick
 from doma.policy import Action, PolicyConfig
+from doma.scorer import DEFAULT_WEIGHTS
+from doma.state import project
 from doma.store import EventStore
 
 # Input events a RentCast scan would surface in live mode.
@@ -21,9 +24,11 @@ PUSH_DELIVERED = INPUT_EVENT_TYPES - SCAN_DELIVERED
 class ReplayExecutor:
     """Serves recorded input events in response to the loop's actions."""
 
-    def __init__(self, corpus: list[Event], clock: ReplayClock) -> None:
+    def __init__(self, corpus: list[Event], clock: ReplayClock,
+                 store: EventStore | None = None) -> None:
         self._pending = sorted(corpus, key=lambda e: e.ts)
         self._clock = clock
+        self._store = store
 
     def exhausted(self) -> bool:
         """True once every corpus event has been delivered."""
@@ -44,6 +49,22 @@ class ReplayExecutor:
             return due + scan_bookkeeping(now_iso)
         if action.type == "mark_saturated":
             return [saturation_event(action, now_iso)]
+        if action.type == "enrich_batch":
+            targets = set(action.targets or ())
+            due = [e for e in self._pending
+                   if e.type == "enrichment_added" and e.ts <= now_iso
+                   and e.payload.get("listing_id") in targets]
+            taken = set(id(e) for e in due)
+            self._pending = [e for e in self._pending if id(e) not in taken]
+            return due + [Event(ts=now_iso, type="enrichment_attempted",
+                                payload={"listing_id": lid, "ok": True})
+                          for lid in (action.targets or ())]
+        if action.type == "score_batch":
+            if self._store is None:
+                raise ValueError("score_batch requires a store-backed executor")
+            state = project(self._store.read_all())
+            return score_batch_events(state, action.targets or (),
+                                      DEFAULT_WEIGHTS, now_iso)
         if action.type == "sleep":
             self._clock.advance()
             return self._take_due(PUSH_DELIVERED, iso(self._clock.now()))
@@ -57,7 +78,7 @@ def run_replay(store: EventStore, config: PolicyConfig, corpus: list[Event],
 
     Returns the full action log. Raises if max_ticks is hit (livelock guard).
     """
-    executor = ReplayExecutor(corpus, clock)
+    executor = ReplayExecutor(corpus, clock, store=store)
     actions: list[Action] = []
     for _ in range(max_ticks):
         if clock.now() > until:

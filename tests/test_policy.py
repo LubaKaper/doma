@@ -93,3 +93,56 @@ def test_decide_sleeps_when_nothing_to_do() -> None:
                         source="rentcast")])
     action = decide(state, _dt("2026-07-01T10:00:00+00:00"), CFG)
     assert action == Action(type="sleep", target=None, reason="nothing to do")
+
+
+def _active_unenriched(lid: str = "e-1"):
+    return ev("2026-07-01T09:00:00+00:00", "listing_seen", listing_id=lid,
+              source="rentcast", neighborhood="11222", price=3000)
+
+
+def test_decide_enriches_before_scoring_and_scanning() -> None:
+    state = project([
+        _active_unenriched(),
+        ev("2026-07-01T09:00:00+00:00", "scan_completed", source="rentcast"),
+    ])
+    action = decide(state, _dt("2026-07-01T10:00:00+00:00"), CFG)
+    assert action.type == "enrich_batch"
+
+
+def test_decide_scores_after_enrichment() -> None:
+    state = project([
+        _active_unenriched(),
+        ev("2026-07-01T09:30:00+00:00", "enrichment_attempted",
+           listing_id="e-1", ok=True),
+        ev("2026-07-01T09:00:00+00:00", "scan_completed", source="rentcast"),
+    ])
+    action = decide(state, _dt("2026-07-01T10:00:00+00:00"), CFG)
+    assert action.type == "score_batch"
+
+
+def test_decide_sleeps_when_scored_and_nothing_due() -> None:
+    state = project([
+        _active_unenriched(),
+        ev("2026-07-01T09:30:00+00:00", "enrichment_attempted",
+           listing_id="e-1", ok=True),
+        ev("2026-07-01T09:45:00+00:00", "score_computed",
+           listing_id="e-1", score=0.5, confidence=0.5),
+        ev("2026-07-01T09:00:00+00:00", "scan_completed", source="rentcast"),
+    ])
+    action = decide(state, _dt("2026-07-01T10:00:00+00:00"), CFG)
+    assert action.type == "sleep"
+
+
+def test_new_activity_makes_score_stale_again() -> None:
+    state = project([
+        _active_unenriched(),
+        ev("2026-07-01T09:30:00+00:00", "enrichment_attempted",
+           listing_id="e-1", ok=True),
+        ev("2026-07-01T09:45:00+00:00", "score_computed",
+           listing_id="e-1", score=0.5, confidence=0.5),
+        ev("2026-07-02T09:00:00+00:00", "price_changed",
+           listing_id="e-1", price=2800),
+        ev("2026-07-02T09:00:00+00:00", "scan_completed", source="rentcast"),
+    ])
+    action = decide(state, _dt("2026-07-02T10:00:00+00:00"), CFG)
+    assert action.type == "score_batch"

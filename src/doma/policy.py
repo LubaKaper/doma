@@ -19,15 +19,18 @@ class PolicyConfig:
     scan_interval_hours: int = 24
     monthly_scan_cap: int = 40
     saturation_days: int = 7
+    enrich_batch_size: int = 20
 
 
 @dataclass(frozen=True)
 class Action:
-    """One decision. type is one of: scan_rentcast | mark_saturated | sleep."""
+    """One decision: scan_rentcast | enrich_batch | score_batch |
+    mark_saturated | sleep."""
 
     type: str
     target: str | None
     reason: str
+    targets: tuple[str, ...] | None = None
 
 
 def is_terminal(listing: ListingState) -> bool:
@@ -63,12 +66,41 @@ def stale_neighborhoods(state: HuntState, now: datetime,
     )
 
 
+def pending_enrichment(state: HuntState) -> list[str]:
+    """Active listings never yet enriched, sorted for determinism."""
+    return sorted(lid for lid, l in state.listings.items()
+                  if l.status == "active" and l.enrich_attempted_ts is None)
+
+
+def stale_scores(state: HuntState) -> list[str]:
+    """Active, enrichment-attempted listings with new activity since scoring."""
+    out = []
+    for lid, l in state.listings.items():
+        if l.status != "active" or l.enrich_attempted_ts is None:
+            continue
+        last_activity = max(l.last_seen_ts, l.enrich_attempted_ts)
+        if l.score_ts is None or last_activity > l.score_ts:
+            out.append(lid)
+    return sorted(out)
+
+
 def decide(state: HuntState, now: datetime, config: PolicyConfig) -> Action:
     """Deterministic priority ladder. Pure: same inputs, same action."""
     stale = stale_neighborhoods(state, now, config)
     if stale:
         return Action(type="mark_saturated", target=stale[0],
                       reason=f"no novel inventory in {config.saturation_days} days")
+    to_enrich = pending_enrichment(state)
+    if to_enrich:
+        batch = tuple(to_enrich[:config.enrich_batch_size])
+        return Action(type="enrich_batch", target=None,
+                      reason=f"{len(to_enrich)} listings await enrichment",
+                      targets=batch)
+    to_score = stale_scores(state)
+    if to_score:
+        return Action(type="score_batch", target=None,
+                      reason=f"{len(to_score)} listings need (re)scoring",
+                      targets=tuple(to_score))
     if scan_due(state, now, config):
         if budget_exhausted(state, now, config):
             return Action(type="sleep", target=None,
