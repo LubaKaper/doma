@@ -79,7 +79,9 @@ def stale_scores(state: HuntState) -> list[str]:
         if l.status != "active" or l.enrich_attempted_ts is None:
             continue
         last_activity = max(l.last_seen_ts, l.enrich_attempted_ts)
-        if l.score_ts is None or last_activity > l.score_ts:
+        if (l.score_ts is None or last_activity > l.score_ts
+                or (state.weights_ts is not None
+                    and l.score_ts < state.weights_ts)):
             out.append(lid)
     return sorted(out)
 

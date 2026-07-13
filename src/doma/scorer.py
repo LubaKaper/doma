@@ -10,15 +10,11 @@ from dataclasses import dataclass
 from typing import Any
 
 from doma.state import HuntState, ListingState
+from doma.weights import DEFAULT_WEIGHTS
 
-DEFAULT_WEIGHTS: dict[str, float] = {
-    "rent_value": 0.30,
-    "commute": 0.25,
-    "building_health": 0.20,
-    "laundry": 0.10,
-    "light": 0.10,
-    "fee_burden": 0.05,
-}
+__all__ = ["DEFAULT_WEIGHTS", "ScoreResult", "score_listing",
+           "neighborhood_median_price", "subscore_rent_value",
+           "subscore_commute", "subscore_building_health", "subscore_fee"]
 
 MEDIAN_MIN_SAMPLES = 5
 WALK_BEST_M = 300.0

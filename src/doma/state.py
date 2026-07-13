@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from doma.events import Event
+from doma.weights import DEFAULT_WEIGHTS
 
 # Listings in these statuses cost zero future actions (spec §4).
 TERMINAL_STATUSES = frozenset({"rejected", "dead", "viewed", "pursuing"})
@@ -51,6 +52,9 @@ class HuntState:
     scan_months: dict[str, int] = field(default_factory=dict)  # "2026-07" -> n
     last_novel_ts: dict[str, str] = field(default_factory=dict)  # hood -> ts
     saturated: set[str] = field(default_factory=set)
+    weights: dict[str, float] = field(
+        default_factory=lambda: dict(DEFAULT_WEIGHTS))
+    weights_ts: str | None = None
 
 
 def _record_price(listing: ListingState, ts: str, price: int | None) -> None:
@@ -151,6 +155,10 @@ def project(events: list[Event]) -> HuntState:
         elif e.type == "budget_spent" and p.get("resource") == "rentcast_scan":
             month = e.ts[:7]
             state.scan_months[month] = state.scan_months.get(month, 0) + 1
+        elif e.type == "weights_updated":
+            if p.get("weights"):
+                state.weights = dict(p["weights"])
+                state.weights_ts = e.ts
         elif e.type == "neighborhood_saturated":
             state.saturated.add(p["neighborhood"])
     return state

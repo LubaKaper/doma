@@ -64,7 +64,7 @@ class ReplayExecutor:
                 raise ValueError("score_batch requires a store-backed executor")
             state = project(self._store.read_all())
             return score_batch_events(state, action.targets or (),
-                                      DEFAULT_WEIGHTS, now_iso)
+                                      state.weights, now_iso)
         if action.type == "sleep":
             self._clock.advance()
             return self._take_due(PUSH_DELIVERED, iso(self._clock.now()))

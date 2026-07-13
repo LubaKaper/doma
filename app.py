@@ -15,6 +15,8 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))  # editable-pth quirk gua
 import streamlit as st
 
 from doma.decisions import mark_listing_event, scorecard_event
+from doma.events import Event
+from doma.learner import MIN_RATINGS, collect_ratings, propose_weights
 from doma.events import iso
 from doma.scorer import DEFAULT_WEIGHTS
 from doma.state import ListingState, project
@@ -160,8 +162,8 @@ def main() -> None:
         st.caption("Saturated (scanning stopped): "
                    + ", ".join(sorted(state.saturated)))
 
-    tab_rank, tab_mine, tab_activity = st.tabs(
-        ["Ranked", "My decisions", "Activity"])
+    tab_rank, tab_mine, tab_weights, tab_activity = st.tabs(
+        ["Ranked", "My decisions", "Weights", "Activity"])
 
     with tab_rank:
         f1, f2, f3 = st.columns([2, 2, 1])
@@ -198,6 +200,52 @@ def main() -> None:
                     if st.button("↩ back to active",
                                  key=f"ba-{listing.listing_id}"):
                         _mark(store, listing.listing_id, "active")
+
+    with tab_weights:
+        st.markdown("**Current taste model** — how much each criterion "
+                    "counts. Changes only via the approvals below.")
+        for criterion, weight in sorted(state.weights.items(),
+                                        key=lambda kv: -kv[1]):
+            pct = round(weight * 100)
+            st.markdown(
+                f'<div style="display:grid;grid-template-columns:130px 1fr 44px;'
+                f'gap:10px;align-items:center;margin:4px 0;font-size:14px">'
+                f'<span>{criterion.replace("_", " ")}</span>'
+                f'<div style="background:#e4e4e7;height:8px;border-radius:4px">'
+                f'<div style="background:{BAR_HUE};width:{pct}%;height:8px;'
+                f'border-radius:4px"></div></div>'
+                f'<span style="text-align:right">{pct}%</span></div>',
+                unsafe_allow_html=True)
+        if state.weights_ts:
+            st.caption(f"Last updated {state.weights_ts[:10]}")
+        ratings = collect_ratings(state)
+        n_cards = sum(1 for l in state.listings.values() if l.scorecard)
+        st.divider()
+        proposal = propose_weights(state)
+        if proposal is None:
+            st.info(f"No weight change proposed. {n_cards} scorecard(s) so "
+                    f"far — the learner speaks once a criterion has "
+                    f"{MIN_RATINGS}+ ratings and they point somewhere.")
+        else:
+            st.markdown("**Proposed update** — from your scorecards. "
+                        "Nothing changes unless you approve.")
+            rows = []
+            for criterion in state.weights:
+                old, new = proposal.previous[criterion], proposal.weights[criterion]
+                if abs(new - old) >= 0.005:
+                    ev_ = proposal.evidence.get(criterion, {})
+                    rows.append(f"- **{criterion.replace('_', ' ')}**: "
+                                f"{old:.0%} → {new:.0%}  "
+                                f"(ratings: {ev_.get('ratings', '—')})")
+            st.markdown("\n".join(rows))
+            if st.button("✅ Approve — apply new weights and rescore"):
+                store.append(Event(ts=_now_iso(), type="weights_updated",
+                                   payload={"weights": proposal.weights,
+                                            "previous": proposal.previous,
+                                            "evidence": proposal.evidence}))
+                st.success("Weights updated — run `doma run` to rescore "
+                           "everything under the new taste model.")
+                st.rerun()
 
     with tab_activity:
         events = store.read_all()

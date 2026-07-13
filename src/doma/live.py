@@ -48,7 +48,7 @@ class LiveExecutor:
         if action.type == "score_batch":
             state = project(self._store.read_all())
             return score_batch_events(state, action.targets or (),
-                                      DEFAULT_WEIGHTS, now_iso)
+                                      state.weights, now_iso)
         if action.type == "sleep":
             time.sleep(self._sleep_seconds)
             return []
