@@ -3,7 +3,7 @@
 > Update this file after every substantial change (see AGENTS.md §Docs
 > contract). A fresh session starts by reading this.
 
-**Last updated:** 2026-07-13 (stations/commute shipped; only email parser still gated)
+**Last updated:** 2026-07-13 (Plan 3 shipped: 500 real listings enriched + scored)
 
 ## Current state
 
@@ -22,11 +22,20 @@
 
 ## Next action
 
-Write **Plan 3 — Scoring & bait** (LLM fact extraction, scorer, bait
-detector, enrichment actions in the policy ladder). One Plan 2 task remains
-gated: **Task 10 (email parser)** — Luba has StreetEasy alerts set up
-(2026-07-13); when one arrives, save it as
-`tests/fixtures/streeteasy_alert_sample.eml` (Gmail: ⋮ > Download message). (RentCast key is live: real fixture
+1. **Email parser (Plan 2 Task 10)** — alerts are set up; when one arrives,
+   save it as `tests/fixtures/streeteasy_alert_sample.eml` (Gmail: ⋮ >
+   Download message). Unblocks LLM fact extraction too (deferred from Plan 3
+   because RentCast has no free text).
+2. **Scoring calibration backlog** (from first real ranking, 2026-07-13):
+   - "too good to be true" bait rule — a price far below the zip median is
+     suspicious (the current top ranks include $900–$1200 outliers).
+   - Rank ties: secondary sort by confidence, then price.
+   - HPD empty result is ambiguous (no violations vs address-match miss) —
+     consider verifying the building was found (e.g. any record incl. closed).
+   - Ingest RentCast's `history` field as prior sightings → instant relist
+     evidence instead of waiting for cross-scan history.
+   - lat/lon backfill: pre-Plan-3 listings lack coordinates until re-seen.
+3. Then **Plan 4 — learning, outreach, Streamlit dashboard, golden demo**. (RentCast key is live: real fixture
 captured 2026-07-13, first real scan appended 502 events to local `doma.db`,
 2/50 monthly calls used. `doma.db` is local-only, gitignored.)
 
@@ -36,7 +45,7 @@ captured 2026-07-13, first real scan appended 502 events to local `doma.db`,
 |---|---|---|
 | 1 — Core loop | events, store, corpus, projection, policy + stopping rules, clocks, tick loop, replay, smoke corpus, CLI | ✅ Shipped (44 tests) |
 | 2 — Ingestion | snapshot, resolver + relist, differ, RentCast/HPD/stations adapters, LiveExecutor, scan/export CLI | ✅ Shipped (73 tests, real fixtures) — only Task 10 email parser gated on an alert-email sample |
-| 3 — Scoring & bait | LLM fact extraction, scorer, bait detector, enrichment actions in policy ladder, Gmail live fetch | Not written |
+| 3 — Scoring & bait | scorer + confidence, bait rules (relist, laddering), enrich/score policy ladder, doma run/rank CLI | ✅ Shipped (96 tests; ran on 500 real listings). LLM extraction deferred to email milestone |
 | 4 — Learning, outreach, UI | preference learner, outreach drafter, Streamlit dashboard, golden demo corpus | Not written |
 
 ## Review status (Plan 1)

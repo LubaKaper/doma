@@ -66,7 +66,8 @@ Replay demo (offline, no API keys, deterministic):
 Live mode (needs a free [RentCast key](https://www.rentcast.io/api) in `.env`):
 
 ```bash
-.venv/bin/python -m doma scan --city Brooklyn        # one budget-aware tick
+.venv/bin/python -m doma run --ticks 40 --city Brooklyn   # scan/enrich/score until settled
+.venv/bin/python -m doma rank --top 15                    # the market, ranked
 .venv/bin/python -m doma export-corpus --db doma.db my-corpus.jsonl
 ```
 
@@ -79,8 +80,8 @@ one of those decisions is asserted in `tests/test_replay.py`.
 
 1. **Core loop** — event store, projection, policy + stopping rules, replay harness ✅
 2. **Ingestion** — RentCast/HPD adapters, cross-source identity + relist detection, live scans, corpus capture ✅ *(stations + email parser pending external inputs)*
-3. **Scoring & bait** — LLM fact extraction, scorer, bait detector wired into the policy ladder ← *next*
-4. **Learning, outreach, UI** — preference learner, outreach drafter, Streamlit dashboard, golden demo corpus
+3. **Scoring & bait** — scorer with confidence, bait rules, enrichment in the policy ladder ✅ *(LLM extraction lands with the email source)*
+4. **Learning, outreach, UI** — preference learner, outreach drafter, Streamlit dashboard, golden demo corpus ← *next*
 
 ## Prior work
 
