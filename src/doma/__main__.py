@@ -123,6 +123,27 @@ def _cmd_ingest_email(args: argparse.Namespace) -> None:
           f"appended to {args.db}")
 
 
+def _cmd_rescore(args: argparse.Namespace) -> None:
+    """Manually rescore every active listing under the current rules."""
+    from datetime import datetime, timezone
+
+    from doma.actions import score_batch_events
+    from doma.events import iso
+    from doma.state import project
+
+    store = EventStore(args.db)
+    state = project(store.read_all())
+    targets = tuple(sorted(lid for lid, l in state.listings.items()
+                           if l.status == "active"))
+    events = score_batch_events(state, targets, state.weights,
+                                iso(datetime.now(timezone.utc)))
+    for e in events:
+        store.append(e)
+    flags = sum(1 for e in events if e.type == "bait_flagged")
+    print(f"rescored {len(targets)} listings -> {len(events)} events "
+          f"({flags} new bait flags)")
+
+
 def _cmd_rank(args: argparse.Namespace) -> None:
     """Ranked view of scored listings: the market as Doma sees it."""
     from doma.state import project
@@ -192,6 +213,10 @@ def main() -> None:
     ie.add_argument("eml", help="path to the saved .eml file")
     ie.add_argument("--db", default="doma.db")
 
+    rs = sub.add_parser("rescore",
+                        help="rescore all active listings under current rules")
+    rs.add_argument("--db", default="doma.db")
+
     rk = sub.add_parser("rank", help="ranked view of scored listings")
     rk.add_argument("--db", default="doma.db")
     rk.add_argument("--top", type=int, default=15)
@@ -205,6 +230,8 @@ def main() -> None:
         _cmd_export_corpus(args)
     elif args.command == "ingest-email":
         _cmd_ingest_email(args)
+    elif args.command == "rescore":
+        _cmd_rescore(args)
     elif args.command == "run":
         _cmd_run(args)
     elif args.command == "rank":
