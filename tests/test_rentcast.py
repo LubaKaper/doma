@@ -13,20 +13,25 @@ def _raw(index: int) -> dict:
 
 
 def test_to_snapshot_maps_documented_fields() -> None:
-    snap = to_snapshot(_raw(0))
+    # Assert against whatever the (re-capturable) fixture contains, so a
+    # fresh real capture never breaks the mapping contract.
+    raw = _raw(0)
+    snap = to_snapshot(raw)
     assert snap.source == "rentcast"
-    assert snap.source_id == "1208-Clay-Ave,-Apt-4N,-Bronx,-NY-10456"
-    assert snap.address_line1 == "1208 Clay Ave"
-    assert snap.unit == "Apt 4N"
-    assert snap.neighborhood == "10456"  # zip is the v1 neighborhood proxy
-    assert snap.price == 2400
-    assert snap.beds == 2
-    assert snap.days_on_market == 12
+    assert snap.source_id == raw["id"]
+    assert snap.address_line1 == raw["addressLine1"]
+    assert snap.unit == raw.get("addressLine2")
+    assert snap.neighborhood == raw["zipCode"]  # zip = v1 neighborhood proxy
+    assert snap.price == raw.get("price")
+    assert snap.beds == raw.get("bedrooms")
+    assert snap.days_on_market == raw.get("daysOnMarket")
 
 
 def test_to_snapshot_missing_fields_stay_none() -> None:
-    snap = to_snapshot(_raw(1))
+    minimal = {"id": "x-1", "addressLine1": "1 Main St", "zipCode": "11222"}
+    snap = to_snapshot(minimal)
     assert snap.unit is None
+    assert snap.price is None
     assert snap.sqft is None
     assert snap.fee is None  # RentCast has no fee field; never fabricate
 
