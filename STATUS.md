@@ -3,7 +3,7 @@
 > Update this file after every substantial change (see AGENTS.md §Docs
 > contract). A fresh session starts by reading this.
 
-**Last updated:** 2026-07-11 (Plan 2 executed except two gated tasks)
+**Last updated:** 2026-07-13 (first real scan: 500 Brooklyn listings in doma.db)
 
 ## Current state
 
@@ -29,9 +29,9 @@ Unblock the two gated Plan 2 tasks (both need Luba):
    attempt was blocked (network permission denied for data.ny.gov).
 2. **Task 10 (email parser):** save a real StreetEasy alert email to
    `tests/fixtures/streeteasy_alert_sample.html`.
-3. **Task 5 Step 7:** get a RentCast key (rentcast.io/api), run
-   `scripts/capture_rentcast.py Brooklyn NY`, re-run rentcast tests.
-Then write **Plan 3 — Scoring & bait**.
+Then write **Plan 3 — Scoring & bait**. (RentCast key is live: real fixture
+captured 2026-07-13, first real scan appended 502 events to local `doma.db`,
+2/50 monthly calls used. `doma.db` is local-only, gitignored.)
 
 ## Plan progress
 
@@ -81,6 +81,15 @@ Then write **Plan 3 — Scoring & bait**.
   writing Plan 2's parser task.
 - De-saturation (novel listing in a saturated neighborhood re-opens it) —
   deliberately deferred; revisit in Plan 2 when real data flows.
+
+## Environment quirk (Luba's machine)
+
+Homebrew Python 3.12.13 ignores pip's underscore-prefixed editable `.pth`
+(`__editable__.doma-0.1.0.pth`), so `import doma` fails after a normal
+`pip install -e .`. Fix applied: a copy named
+`.venv/lib/python3.12/site-packages/doma-src.pth`. If the venv is ever
+recreated, re-run `pip install -e .` and re-copy the pth under a
+non-underscore name (or set `PYTHONPATH=src`).
 
 ## Session continuity notes
 
