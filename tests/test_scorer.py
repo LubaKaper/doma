@@ -44,9 +44,12 @@ def test_commute_walk_bands() -> None:
 
 
 def test_building_health_penalizes_class_c() -> None:
-    clean = subscore_building_health({"class_a": 0, "class_b": 0, "class_c": 0})
-    bad_c = subscore_building_health({"class_a": 0, "class_b": 0, "class_c": 5})
-    bad_a = subscore_building_health({"class_a": 5, "class_b": 0, "class_c": 0})
+    clean = subscore_building_health({"class_a": 0, "class_b": 0,
+                                      "class_c": 0, "matched": True})
+    bad_c = subscore_building_health({"class_a": 0, "class_b": 0,
+                                      "class_c": 5, "total": 5})
+    bad_a = subscore_building_health({"class_a": 5, "class_b": 0,
+                                      "class_c": 0, "total": 5})
     assert clean == 1.0
     assert bad_c < bad_a < clean
     assert subscore_building_health(None) is None
@@ -62,7 +65,8 @@ def test_score_renormalizes_over_known_weights() -> None:
     state = _state_with_market([2800, 2900, 3000, 3100, 3200])
     listing = _listing(price=3000, fee=False,
                        commute={"walk_meters": 300},
-                       hpd={"class_a": 0, "class_b": 0, "class_c": 0})
+                       hpd={"class_a": 0, "class_b": 0, "class_c": 0,
+                            "matched": True})
     result = score_listing(listing, state, DEFAULT_WEIGHTS)
     # Known: rent_value(.5), commute(1), health(1), fee(1); laundry/light unknown
     known_w = 0.30 + 0.25 + 0.20 + 0.05
