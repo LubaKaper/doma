@@ -9,6 +9,7 @@ from typing import Any
 from doma.state import ListingState
 
 LADDER_MIN_DROPS = 2
+TGTB_RATIO = 0.5  # price below half the neighborhood median is suspicious
 
 
 def _consecutive_drops(history: list[list[Any]]) -> int:
@@ -22,9 +23,17 @@ def _consecutive_drops(history: list[list[Any]]) -> int:
     return drops
 
 
-def detect(listing: ListingState) -> list[dict[str, Any]]:
+def detect(listing: ListingState,
+           median: int | None = None) -> list[dict[str, Any]]:
     """All bait flags for one listing: kind + evidence dicts."""
     flags: list[dict[str, Any]] = []
+    if (median is not None and listing.price is not None
+            and listing.price < TGTB_RATIO * median):
+        flags.append({
+            "kind": "too_good_to_be_true",
+            "evidence": {"price": listing.price,
+                         "neighborhood_median": median},
+        })
     if listing.relist_count >= 1:
         flags.append({
             "kind": "relist",

@@ -37,3 +37,18 @@ def test_rise_resets_the_ladder() -> None:
     zigzag = _listing(price_history=[["t1", 3000], ["t2", 2900],
                                      ["t3", 3100], ["t4", 3000]])
     assert detect(zigzag) == []
+
+
+def test_too_good_to_be_true_flags_deep_discounts() -> None:
+    cheap = _listing(price=900)
+    flags = detect(cheap, median=3000)
+    assert [f["kind"] for f in flags] == ["too_good_to_be_true"]
+    assert flags[0]["evidence"] == {"price": 900, "neighborhood_median": 3000}
+
+
+def test_fair_price_not_flagged() -> None:
+    assert detect(_listing(price=2400), median=3000) == []
+
+
+def test_no_median_no_tgtb_flag() -> None:
+    assert detect(_listing(price=900), median=None) == []

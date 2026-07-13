@@ -44,14 +44,20 @@ def fetch_open_violations(housenumber: str, street: str,
     return response.json()
 
 
-def summarize(violations: list[dict]) -> dict[str, int]:
-    """Count open violations by hazard class (A/B/C). Zero is a real fact."""
+def summarize(violations: list[dict]) -> dict:
+    """Count open violations by hazard class (A/B/C).
+
+    An empty result is AMBIGUOUS: it can mean a clean building or an
+    address that didn't match the dataset — `matched` records which, and
+    the scorer treats unmatched as unknown rather than perfect.
+    """
     counts = {"class_a": 0, "class_b": 0, "class_c": 0}
     for v in violations:
         key = f"class_{v.get('class', '').lower()}"
         if key in counts:
             counts[key] += 1
-    return {**counts, "total": len(violations)}
+    return {**counts, "total": len(violations),
+            "matched": len(violations) > 0}
 
 
 def to_enrichment_event(listing_id: str, summary: dict[str, int],

@@ -4,7 +4,7 @@ from __future__ import annotations
 from doma.bait import detect
 from doma.events import Event
 from doma.policy import Action
-from doma.scorer import score_listing
+from doma.scorer import neighborhood_median_price, score_listing
 from doma.state import HuntState
 
 
@@ -48,7 +48,8 @@ def score_batch_events(state: HuntState, targets: tuple[str, ...],
                                 payload={"listing_id": lid, "score": None,
                                          "confidence": 0.0,
                                          "subscores": {}}))
-        for flag in detect(listing):
+        median = neighborhood_median_price(state, listing.neighborhood)
+        for flag in detect(listing, median=median):
             if flag["kind"] not in listing.bait_flags:
                 events.append(Event(ts=now_iso, type="bait_flagged",
                                     payload={"listing_id": lid,

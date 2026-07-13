@@ -64,8 +64,12 @@ def subscore_commute(commute: dict[str, Any] | None) -> float | None:
 
 
 def subscore_building_health(hpd: dict[str, Any] | None) -> float | None:
-    """Open HPD violations, class C weighted heaviest."""
-    if hpd is None:
+    """Open HPD violations, class C weighted heaviest.
+
+    An unmatched lookup (no rows for the address) is unknown, not perfect:
+    we can't distinguish a clean building from an address-format miss.
+    """
+    if hpd is None or hpd.get("matched") is False:
         return None
     burden = (0.1 * hpd.get("class_a", 0) + 0.3 * hpd.get("class_b", 0)
               + 0.6 * hpd.get("class_c", 0))
