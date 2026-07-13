@@ -3,7 +3,7 @@
 > Update this file after every substantial change (see AGENTS.md §Docs
 > contract). A fresh session starts by reading this.
 
-**Last updated:** 2026-07-13 (independent review passed + calibration fixes shipped)
+**Last updated:** 2026-07-13 (email parser shipped from real sample; second source live)
 
 ## Current state
 
@@ -22,10 +22,13 @@
 
 ## Next action
 
-1. **Email parser (Plan 2 Task 10)** — alerts are set up; when one arrives,
-   save it as `tests/fixtures/streeteasy_alert_sample.eml` (Gmail: ⋮ >
-   Download message). Unblocks LLM fact extraction too (deferred from Plan 3
-   because RentCast has no free text).
+1. ~~Email parser~~ ✅ shipped 2026-07-13 from a real captured alert
+   (selectors derived, never guessed; fixture sanitized; .eml gitignored).
+   `doma ingest-email <file.eml>` feeds alerts into the db (incremental —
+   never delists). NOTE: Luba's saved search is **New Jersey** — HPD and
+   MTA enrichment are NYC-only, so NJ listings honestly score with lower
+   confidence. Remaining from this thread: LLM fact extraction over email
+   text + outreach drafter (needs OPENROUTER_API_KEY), Gmail API auto-fetch.
 2. **Calibration status:** too-good-to-be-true rule ✅, HPD matched-flag
    honesty (incl. legacy payloads) ✅, RentCast history ingestion with 90-day
    relist window ✅, tie-breaking ✅. Remaining backlog:
