@@ -3,7 +3,7 @@
 > Update this file after every substantial change (see AGENTS.md §Docs
 > contract). A fresh session starts by reading this.
 
-**Last updated:** 2026-07-13 (Plan 3 shipped: 500 real listings enriched + scored)
+**Last updated:** 2026-07-13 (Plan 4a shipped: Streamlit dashboard live)
 
 ## Current state
 
@@ -35,7 +35,10 @@
    - Ingest RentCast's `history` field as prior sightings → instant relist
      evidence instead of waiting for cross-scan history.
    - lat/lon backfill: pre-Plan-3 listings lack coordinates until re-seen.
-3. Then **Plan 4 — learning, outreach, Streamlit dashboard, golden demo**. (RentCast key is live: real fixture
+3. **Plan 4b — preference learner** (design conversation with Luba first:
+   residual math, step size, approval flow — see spec §Preference learner).
+4. **Plan 4c — outreach drafter** (needs OPENROUTER_API_KEY + email facts)
+   and the golden demo corpus. (RentCast key is live: real fixture
 captured 2026-07-13, first real scan appended 502 events to local `doma.db`,
 2/50 monthly calls used. `doma.db` is local-only, gitignored.)
 
@@ -46,7 +49,8 @@ captured 2026-07-13, first real scan appended 502 events to local `doma.db`,
 | 1 — Core loop | events, store, corpus, projection, policy + stopping rules, clocks, tick loop, replay, smoke corpus, CLI | ✅ Shipped (44 tests) |
 | 2 — Ingestion | snapshot, resolver + relist, differ, RentCast/HPD/stations adapters, LiveExecutor, scan/export CLI | ✅ Shipped (73 tests, real fixtures) — only Task 10 email parser gated on an alert-email sample |
 | 3 — Scoring & bait | scorer + confidence, bait rules (relist, laddering), enrich/score policy ladder, doma run/rank CLI | ✅ Shipped (96 tests; ran on 500 real listings). LLM extraction deferred to email milestone |
-| 4 — Learning, outreach, UI | preference learner, outreach drafter, Streamlit dashboard, golden demo corpus | Not written |
+| 4a — Dashboard | Streamlit UI: ranked view + why-this-score bars, filters, KPI row, decisions (reject/pursue/viewed), scorecard capture | ✅ Shipped (104 tests incl. AppTest) |
+| 4b/4c — Learner, outreach, demo | weight-update math (user-led design), LLM drafter, golden corpus | Not written |
 
 ## Review status (Plan 1)
 
