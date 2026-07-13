@@ -18,6 +18,7 @@ DECISION_EVENT_TYPES = frozenset({
     "scan_completed", "budget_spent", "score_computed", "bait_flagged",
     "outreach_proposed", "outreach_approved", "outreach_rejected",
     "viewing_scheduled", "weights_proposed", "weights_updated",
+    "enrichment_attempted",
     "neighborhood_saturated",
 })
 

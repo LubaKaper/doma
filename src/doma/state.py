@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
 from doma.events import Event
 
@@ -21,6 +22,22 @@ class ListingState:
     first_seen_ts: str
     last_seen_ts: str
     relist_count: int = 0
+    # Location + facts carried on listing_seen (None when the source lacks them)
+    address: str | None = None
+    unit: str | None = None
+    fee: bool | None = None
+    lat: float | None = None
+    lon: float | None = None
+    # Accumulated history and enrichment
+    price_history: list[list[Any]] = field(default_factory=list)  # [ts, price]
+    hpd: dict[str, Any] | None = None
+    commute: dict[str, Any] | None = None
+    enrich_attempted_ts: str | None = None
+    # Scoring
+    score: float | None = None
+    score_confidence: float | None = None
+    score_ts: str | None = None
+    bait_flags: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -34,6 +51,14 @@ class HuntState:
     saturated: set[str] = field(default_factory=set)
 
 
+def _record_price(listing: ListingState, ts: str, price: int | None) -> None:
+    if price is None:
+        return
+    if listing.price_history and listing.price_history[-1][1] == price:
+        return
+    listing.price_history.append([ts, price])
+
+
 def project(events: list[Event]) -> HuntState:
     """Fold the event list into a HuntState. Pure: same events, same state."""
     state = HuntState()
@@ -43,7 +68,7 @@ def project(events: list[Event]) -> HuntState:
             lid = p["listing_id"]
             existing = state.listings.get(lid)
             if existing is None:
-                state.listings[lid] = ListingState(
+                listing = ListingState(
                     listing_id=lid,
                     source=p["source"],
                     neighborhood=p["neighborhood"],
@@ -51,7 +76,14 @@ def project(events: list[Event]) -> HuntState:
                     status="active",
                     first_seen_ts=e.ts,
                     last_seen_ts=e.ts,
+                    address=p.get("address"),
+                    unit=p.get("unit"),
+                    fee=p.get("fee"),
+                    lat=p.get("lat"),
+                    lon=p.get("lon"),
                 )
+                _record_price(listing, e.ts, p.get("price"))
+                state.listings[lid] = listing
                 state.last_novel_ts[p["neighborhood"]] = e.ts
             else:
                 existing.last_seen_ts = e.ts
@@ -60,21 +92,47 @@ def project(events: list[Event]) -> HuntState:
                     existing.relist_count += 1
                 if p.get("price") is not None:
                     existing.price = p["price"]
+                    _record_price(existing, e.ts, p["price"])
         elif e.type == "listing_updated":
             listing = state.listings.get(p["listing_id"])
             if listing is not None:
                 listing.last_seen_ts = e.ts
                 if p.get("price") is not None:
                     listing.price = p["price"]
+                    _record_price(listing, e.ts, p["price"])
         elif e.type == "price_changed":
             listing = state.listings.get(p["listing_id"])
             if listing is not None:
                 listing.price = p["price"]
                 listing.last_seen_ts = e.ts
+                _record_price(listing, e.ts, p["price"])
         elif e.type == "listing_delisted":
             listing = state.listings.get(p["listing_id"])
             if listing is not None:
                 listing.status = "dead"
+        elif e.type == "enrichment_added":
+            listing = state.listings.get(p.get("listing_id", ""))
+            if listing is not None:
+                detail = {k: v for k, v in p.items()
+                          if k not in ("listing_id", "kind")}
+                if p.get("kind") == "hpd_violations":
+                    listing.hpd = detail
+                elif p.get("kind") == "commute":
+                    listing.commute = detail
+        elif e.type == "enrichment_attempted":
+            listing = state.listings.get(p.get("listing_id", ""))
+            if listing is not None:
+                listing.enrich_attempted_ts = e.ts
+        elif e.type == "score_computed":
+            listing = state.listings.get(p.get("listing_id", ""))
+            if listing is not None:
+                listing.score = p.get("score")
+                listing.score_confidence = p.get("confidence")
+                listing.score_ts = e.ts
+        elif e.type == "bait_flagged":
+            listing = state.listings.get(p.get("listing_id", ""))
+            if listing is not None and p.get("kind") not in listing.bait_flags:
+                listing.bait_flags.append(p["kind"])
         elif e.type == "scan_completed":
             state.last_scan_ts = e.ts
         elif e.type == "budget_spent" and p.get("resource") == "rentcast_scan":

@@ -110,3 +110,64 @@ def test_relist_is_not_novel_inventory() -> None:
 def test_fresh_listing_has_zero_relists() -> None:
     state = project([_seen("2026-07-01T09:00:00+00:00", "gp-001")])
     assert state.listings["gp-001"].relist_count == 0
+
+
+def test_price_history_accumulates() -> None:
+    state = project([
+        _seen("2026-07-01T09:00:00+00:00", "gp-001", price=3000),
+        ev("2026-07-05T09:00:00+00:00", "price_changed",
+           listing_id="gp-001", price=2900),
+        ev("2026-07-09T09:00:00+00:00", "price_changed",
+           listing_id="gp-001", price=2800),
+    ])
+    assert state.listings["gp-001"].price_history == [
+        ["2026-07-01T09:00:00+00:00", 3000],
+        ["2026-07-05T09:00:00+00:00", 2900],
+        ["2026-07-09T09:00:00+00:00", 2800],
+    ]
+
+
+def test_enrichment_and_attempted_fold() -> None:
+    state = project([
+        _seen("2026-07-01T09:00:00+00:00", "gp-001"),
+        ev("2026-07-02T09:00:00+00:00", "enrichment_added",
+           listing_id="gp-001", kind="hpd_violations",
+           class_a=1, class_b=2, class_c=0, total=3),
+        ev("2026-07-02T09:00:00+00:00", "enrichment_added",
+           listing_id="gp-001", kind="commute",
+           station="Nassau Av", walk_meters=393),
+        ev("2026-07-02T09:00:00+00:00", "enrichment_attempted",
+           listing_id="gp-001", ok=True),
+    ])
+    listing = state.listings["gp-001"]
+    assert listing.hpd == {"class_a": 1, "class_b": 2, "class_c": 0, "total": 3}
+    assert listing.commute == {"station": "Nassau Av", "walk_meters": 393}
+    assert listing.enrich_attempted_ts == "2026-07-02T09:00:00+00:00"
+
+
+def test_score_and_bait_fold() -> None:
+    state = project([
+        _seen("2026-07-01T09:00:00+00:00", "gp-001"),
+        ev("2026-07-02T10:00:00+00:00", "score_computed",
+           listing_id="gp-001", score=0.72, confidence=0.55,
+           subscores={"rent_value": 0.8}),
+        ev("2026-07-02T10:00:00+00:00", "bait_flagged",
+           listing_id="gp-001", kind="relist", evidence={"relist_count": 1}),
+    ])
+    listing = state.listings["gp-001"]
+    assert listing.score == 0.72
+    assert listing.score_confidence == 0.55
+    assert listing.score_ts == "2026-07-02T10:00:00+00:00"
+    assert listing.bait_flags == ["relist"]
+
+
+def test_listing_seen_carries_location_and_fee() -> None:
+    state = project([ev("2026-07-01T09:00:00+00:00", "listing_seen",
+                        listing_id="x", source="rentcast",
+                        neighborhood="11222", price=3000,
+                        address="55 Nassau Ave", unit=None, fee=None,
+                        lat=40.7237, lon=-73.9509)])
+    listing = state.listings["x"]
+    assert listing.address == "55 Nassau Ave"
+    assert listing.lat == 40.7237
+    assert listing.fee is None
