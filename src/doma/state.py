@@ -1,11 +1,17 @@
 """HuntState: a pure projection of the event log. Never mutated elsewhere."""
 from __future__ import annotations
 
+from datetime import date
+
 from dataclasses import dataclass, field
 from typing import Any
 
 from doma.events import Event
 from doma.weights import DEFAULT_WEIGHTS
+
+# A prior removal only counts as a relist if the gap to the next listing
+# is short — long gaps are normal turnover, not bait.
+RELIST_WINDOW_DAYS = 90
 
 # Listings in these statuses cost zero future actions (spec §4).
 TERMINAL_STATUSES = frozenset({"rejected", "dead", "viewed", "pursuing"})
@@ -57,6 +63,23 @@ class HuntState:
     weights_ts: str | None = None
 
 
+def _days_between(d1: str, d2: str) -> int:
+    return abs((date.fromisoformat(d2[:10]) - date.fromisoformat(d1[:10])).days)
+
+
+def _seed_source_history(listing: ListingState,
+                         history: list[list]) -> None:
+    """Fold the source's own prior sightings: prices always; a removal
+    counts as a relist only when relisting followed within the window."""
+    for i, entry in enumerate(history):
+        entry_date, price, removed = entry[0], entry[1], entry[2]
+        _record_price(listing, entry_date, price)
+        if removed and i + 1 < len(history):
+            next_date = history[i + 1][0]
+            if _days_between(entry_date, next_date) <= RELIST_WINDOW_DAYS:
+                listing.relist_count += 1
+
+
 def _record_price(listing: ListingState, ts: str, price: int | None) -> None:
     if price is None:
         return
@@ -88,6 +111,7 @@ def project(events: list[Event]) -> HuntState:
                     lat=p.get("lat"),
                     lon=p.get("lon"),
                 )
+                _seed_source_history(listing, p.get("history") or [])
                 _record_price(listing, e.ts, p.get("price"))
                 state.listings[lid] = listing
                 state.last_novel_ts[p["neighborhood"]] = e.ts

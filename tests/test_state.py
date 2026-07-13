@@ -211,3 +211,23 @@ def test_novel_listing_desaturates_neighborhood() -> None:
         _seen("2026-07-20T09:00:00+00:00", "gp-002"),  # novel inventory
     ])
     assert "greenpoint" not in state.saturated
+
+
+def test_source_history_seeds_prices_and_windowed_relists() -> None:
+    state = project([ev("2026-07-13T09:00:00+00:00", "listing_seen",
+                        listing_id="shell", source="rentcast",
+                        neighborhood="11224", price=3450,
+                        history=[["2026-06-09", 3300, True],
+                                 ["2026-07-13", 3450, False]])])
+    listing = state.listings["shell"]
+    assert listing.relist_count == 1          # 33-day gap: bait
+    assert listing.price_history[0] == ["2026-06-09", 3300]
+
+
+def test_source_history_old_removal_is_not_a_relist() -> None:
+    state = project([ev("2026-07-13T09:00:00+00:00", "listing_seen",
+                        listing_id="x", source="rentcast",
+                        neighborhood="11224", price=3950,
+                        history=[["2025-06-09", 3850, True],
+                                 ["2026-07-13", 3950, False]])])
+    assert state.listings["x"].relist_count == 0  # 13-month gap: turnover

@@ -48,3 +48,26 @@ def test_to_snapshot_carries_coordinates() -> None:
     snap = to_snapshot(raw)
     assert snap.lat == raw.get("latitude")
     assert snap.lon == raw.get("longitude")
+
+
+def test_history_extracted_as_prior_sightings() -> None:
+    from doma.adapters.rentcast import history_entries
+    raw = {
+        "id": "x", "addressLine1": "2971 Shell Rd", "zipCode": "11224",
+        "history": {
+            "2026-06-09": {"event": "Rental Listing", "price": 3300,
+                           "listedDate": "2026-06-09T00:00:00.000Z",
+                           "removedDate": "2026-06-10T00:00:00.000Z"},
+            "2026-07-13": {"event": "Rental Listing", "price": 3450,
+                           "listedDate": "2026-07-13T00:00:00.000Z",
+                           "removedDate": None},
+        },
+    }
+    entries = history_entries(raw)
+    # chronological, [date, price, was_removed]
+    assert entries == [["2026-06-09", 3300, True], ["2026-07-13", 3450, False]]
+
+
+def test_history_missing_or_empty_is_empty_list() -> None:
+    from doma.adapters.rentcast import history_entries
+    assert history_entries({"id": "x"}) == []

@@ -25,6 +25,7 @@ def _seen_payload(lid: str, snap: Snapshot) -> dict[str, Any]:
         "listed_date": snap.listed_date,
         "lat": snap.lat,
         "lon": snap.lon,
+        "history": snap.history,
     }
 
 

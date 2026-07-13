@@ -35,6 +35,17 @@ def fetch_listings(api_key: str, city: str, state: str,
     return body
 
 
+def history_entries(raw: dict) -> list[list]:
+    """RentCast's per-listing history as chronological
+    [date, price, was_removed] rows — prior sightings we didn't observe."""
+    entries = []
+    for date in sorted((raw.get("history") or {})):
+        h = raw["history"][date]
+        entries.append([date, h.get("price"),
+                        h.get("removedDate") is not None])
+    return entries
+
+
 def to_snapshot(raw: dict) -> Snapshot:
     """Map one documented RentCast listing object to a Snapshot."""
     for required in ("id", "addressLine1", "zipCode"):
@@ -58,4 +69,5 @@ def to_snapshot(raw: dict) -> Snapshot:
         listed_date=raw.get("listedDate"),
         lat=raw.get("latitude"),
         lon=raw.get("longitude"),
+        history=history_entries(raw),
     )
