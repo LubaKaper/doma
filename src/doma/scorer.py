@@ -69,7 +69,11 @@ def subscore_building_health(hpd: dict[str, Any] | None) -> float | None:
     An unmatched lookup (no rows for the address) is unknown, not perfect:
     we can't distinguish a clean building from an address-format miss.
     """
-    if hpd is None or hpd.get("matched") is False:
+    if hpd is None:
+        return None
+    # matched=False, or a legacy zero-violation payload without the flag:
+    # both are ambiguous (clean vs address miss) -> unknown, not perfect.
+    if hpd.get("matched") is not True and hpd.get("total", 0) == 0:
         return None
     burden = (0.1 * hpd.get("class_a", 0) + 0.3 * hpd.get("class_b", 0)
               + 0.6 * hpd.get("class_c", 0))

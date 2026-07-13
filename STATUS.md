@@ -3,7 +3,7 @@
 > Update this file after every substantial change (see AGENTS.md §Docs
 > contract). A fresh session starts by reading this.
 
-**Last updated:** 2026-07-13 (Plan 4b shipped: preference learner with approval flow)
+**Last updated:** 2026-07-13 (independent review passed + calibration fixes shipped)
 
 ## Current state
 
@@ -26,15 +26,16 @@
    save it as `tests/fixtures/streeteasy_alert_sample.eml` (Gmail: ⋮ >
    Download message). Unblocks LLM fact extraction too (deferred from Plan 3
    because RentCast has no free text).
-2. **Scoring calibration backlog** (from first real ranking, 2026-07-13):
-   - "too good to be true" bait rule — a price far below the zip median is
-     suspicious (the current top ranks include $900–$1200 outliers).
-   - Rank ties: secondary sort by confidence, then price.
-   - HPD empty result is ambiguous (no violations vs address-match miss) —
-     consider verifying the building was found (e.g. any record incl. closed).
-   - Ingest RentCast's `history` field as prior sightings → instant relist
-     evidence instead of waiting for cross-scan history.
-   - lat/lon backfill: pre-Plan-3 listings lack coordinates until re-seen.
+2. **Calibration status:** too-good-to-be-true rule ✅, HPD matched-flag
+   honesty (incl. legacy payloads) ✅, RentCast history ingestion with 90-day
+   relist window ✅, tie-breaking ✅. Remaining backlog:
+   - lat/lon + history backfill for pre-Plan-3 listings (they update only on
+     relist; a one-off backfill scan-merge script would fix immediately).
+   - listing_updated fires every scan -> full rescore each scan (harmless,
+     wasteful; review finding #6).
+   - Replay enrich_batch can drop later-ts enrichment events (review #7).
+   - The next real `doma run` will rescore everything under the new rules
+     (scan bumps activity) — expect the $900 outliers to drop/flag.
 3. **Plan 4c — outreach drafter** (needs OPENROUTER_API_KEY + email facts)
    and the golden demo corpus. Learner design (approved defaults 2026-07-13):
    salience signal, ±3pt caps, ≥3 ratings gate, approval-only application. (RentCast key is live: real fixture
@@ -51,6 +52,16 @@ captured 2026-07-13, first real scan appended 502 events to local `doma.db`,
 | 4a — Dashboard | Streamlit UI: ranked view + why-this-score bars, filters, KPI row, decisions (reject/pursue/viewed), scorecard capture | ✅ Shipped (104 tests incl. AppTest) |
 | 4b — Learner | ✅ Shipped (salience-based proposals, dashboard approval, rescore-on-update; 108 tests) |  |
 | 4c — Outreach + demo | LLM drafter (needs key + email facts), golden corpus | Not written |
+
+## Review status (full codebase, 2026-07-13)
+
+Independent opus review over b3a3864..HEAD: verdict "with fixes" — two
+confirmed learner-math bugs (floor breach, cap/direction violation via
+renormalization), saturation not gating scans, SQLite locking risk. All four
+fixed with invariant tests (zero-sum rebalance; saturation gate +
+de-saturation; WAL+busy_timeout) plus minors (defensive scorer weights,
+validated weights_updated constructor, XSS guard comment). Remaining minor
+findings tracked in the backlog above.
 
 ## Review status (Plan 1)
 

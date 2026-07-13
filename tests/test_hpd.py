@@ -49,3 +49,11 @@ def test_empty_result_is_unmatched_not_clean() -> None:
     real = summarize(_records())
     assert real["matched"] is True
     assert subscore_building_health(real) is not None
+
+
+def test_legacy_zero_violation_payload_without_flag_is_unknown() -> None:
+    from doma.scorer import subscore_building_health
+    legacy_clean = {"class_a": 0, "class_b": 0, "class_c": 0, "total": 0}
+    legacy_dirty = {"class_a": 2, "class_b": 1, "class_c": 0, "total": 3}
+    assert subscore_building_health(legacy_clean) is None
+    assert subscore_building_health(legacy_dirty) is not None
