@@ -25,9 +25,11 @@
 1. ~~Email parser~~ ✅ shipped 2026-07-13 from a real captured alert
    (selectors derived, never guessed; fixture sanitized; .eml gitignored).
    `doma ingest-email <file.eml>` feeds alerts into the db (incremental —
-   never delists). NOTE: Luba's saved search is **New Jersey** — HPD and
-   MTA enrichment are NYC-only, so NJ listings honestly score with lower
-   confidence. Remaining from this thread: LLM fact extraction over email
+   never delists). NOTE (corrected): the alert bundles MULTIPLE saved searches — subject
+   named only the NJ one. Actual content: 7 NJ + 7 NYC (5 Mott Haven,
+   2 Flatbush). Gap: email listings carry neighborhood NAMES not zips, so
+   zip-keyed enrichment (HPD boro, stations) skips them — needs address
+   geocoding or a listing-page lookup to close. Remaining from this thread: LLM fact extraction over email
    text + outreach drafter (needs OPENROUTER_API_KEY), Gmail API auto-fetch.
 2. **Calibration status:** too-good-to-be-true rule ✅, HPD matched-flag
    honesty (incl. legacy payloads) ✅, RentCast history ingestion with 90-day
