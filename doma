@@ -1,0 +1,4 @@
+#!/bin/sh
+# Doma launcher: immune to editable-install/site-packages quirks.
+DIR="$(cd "$(dirname "$0")" && pwd)"
+PYTHONPATH="$DIR/src" exec "$DIR/.venv/bin/python" -m doma "$@"

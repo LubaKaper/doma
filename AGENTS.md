@@ -68,8 +68,10 @@ the work without the user re-explaining anything.
 cd /Users/lubakaper/Desktop/L3Projects/apartment-search
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt  # first time
 .venv/bin/python -m pytest -v                                        # full suite
-.venv/bin/python -m doma replay tests/fixtures/corpus_smoke.jsonl \
+./doma replay tests/fixtures/corpus_smoke.jsonl \
   --start 2026-07-01T00:00:00+00:00 --until 2026-07-15T00:00:00+00:00
+# ./doma is the launcher — use it over `python -m doma` (this machine's
+# Python ignores editable-install .pth files; the launcher sets PYTHONPATH)
 ```
 
 ## Git conventions

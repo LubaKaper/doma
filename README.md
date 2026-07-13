@@ -66,10 +66,11 @@ Replay demo (offline, no API keys, deterministic):
 Live mode (needs a free [RentCast key](https://www.rentcast.io/api) in `.env`):
 
 ```bash
-.venv/bin/python -m doma run --ticks 40 --city Brooklyn   # scan/enrich/score until settled
-.venv/bin/python -m doma rank --top 15                    # the market, ranked
-.venv/bin/streamlit run app.py                            # the dashboard
-.venv/bin/python -m doma export-corpus --db doma.db my-corpus.jsonl
+./doma run --ticks 40 --city Brooklyn   # scan/enrich/score until settled
+./doma rank --top 15                    # the market, ranked
+./doma ingest-email alert.eml           # feed a saved StreetEasy alert in
+.venv/bin/streamlit run app.py          # the dashboard
+./doma export-corpus --db doma.db my-corpus.jsonl
 ```
 
 You'll watch the agent scan daily, then stop scanning each neighborhood as
