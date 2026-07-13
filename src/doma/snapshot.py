@@ -24,6 +24,8 @@ class Snapshot:
     fee: bool | None         # broker fee; None = unknown
     days_on_market: int | None
     listed_date: str | None  # ISO 8601 or None
+    lat: float | None = None
+    lon: float | None = None
 
     def __post_init__(self) -> None:
         if not self.source:

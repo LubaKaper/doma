@@ -56,4 +56,6 @@ def to_snapshot(raw: dict) -> Snapshot:
         fee=None,                    # no fee data in this source
         days_on_market=raw.get("daysOnMarket"),
         listed_date=raw.get("listedDate"),
+        lat=raw.get("latitude"),
+        lon=raw.get("longitude"),
     )

@@ -13,6 +13,18 @@ from doma.resolver import normalize_street
 
 DATASET_URL = "https://data.cityofnewyork.us/resource/csn4-vhvf.json"
 
+_ZIP_PREFIX_TO_BORO = {
+    "100": "MANHATTAN", "101": "MANHATTAN", "102": "MANHATTAN",
+    "103": "STATEN ISLAND", "104": "BRONX", "110": "QUEENS",
+    "111": "QUEENS", "112": "BROOKLYN", "113": "QUEENS",
+    "114": "QUEENS", "116": "QUEENS",
+}
+
+
+def borough_from_zip(zip_code: str) -> str | None:
+    """NYC borough from a zip prefix; None outside the five boroughs."""
+    return _ZIP_PREFIX_TO_BORO.get(zip_code[:3])
+
 
 def fetch_open_violations(housenumber: str, street: str,
                           boro: str) -> list[dict]:

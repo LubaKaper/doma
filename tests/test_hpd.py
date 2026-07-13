@@ -31,3 +31,10 @@ def test_enrichment_event_shape() -> None:
     assert event.payload["listing_id"] == "1208-clay-avenue::4n"
     assert event.payload["kind"] == "hpd_violations"
     assert "class_c" in event.payload
+
+
+def test_borough_from_zip() -> None:
+    from doma.adapters.hpd import borough_from_zip
+    assert borough_from_zip("11222") == "BROOKLYN"
+    assert borough_from_zip("10456") == "BRONX"
+    assert borough_from_zip("90210") is None

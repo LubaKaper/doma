@@ -23,6 +23,8 @@ def _seen_payload(lid: str, snap: Snapshot) -> dict[str, Any]:
         "url": snap.url, "fee": snap.fee,
         "days_on_market": snap.days_on_market,
         "listed_date": snap.listed_date,
+        "lat": snap.lat,
+        "lon": snap.lon,
     }
 
 

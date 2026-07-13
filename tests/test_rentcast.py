@@ -41,3 +41,10 @@ def test_to_snapshot_missing_required_field_raises() -> None:
     del broken["addressLine1"]
     with pytest.raises(ValueError, match="addressLine1"):
         to_snapshot(broken)
+
+
+def test_to_snapshot_carries_coordinates() -> None:
+    raw = _raw(0)
+    snap = to_snapshot(raw)
+    assert snap.lat == raw.get("latitude")
+    assert snap.lon == raw.get("longitude")
