@@ -171,3 +171,33 @@ def test_listing_seen_carries_location_and_fee() -> None:
     assert listing.address == "55 Nassau Ave"
     assert listing.lat == 40.7237
     assert listing.fee is None
+
+
+def test_listing_marked_sets_status() -> None:
+    state = project([
+        _seen("2026-07-01T09:00:00+00:00", "gp-001"),
+        ev("2026-07-14T09:00:00+00:00", "listing_marked",
+           listing_id="gp-001", status="rejected"),
+    ])
+    assert state.listings["gp-001"].status == "rejected"
+
+
+def test_viewing_scored_folds_latest_scorecard() -> None:
+    state = project([
+        _seen("2026-07-01T09:00:00+00:00", "gp-001"),
+        ev("2026-07-14T09:00:00+00:00", "viewing_scored",
+           listing_id="gp-001", verdict="pass", ratings={"light": 2}),
+    ])
+    assert state.listings["gp-001"].scorecard == {"verdict": "pass",
+                                                  "ratings": {"light": 2}}
+
+
+def test_subscores_folded_from_score_event() -> None:
+    state = project([
+        _seen("2026-07-01T09:00:00+00:00", "gp-001"),
+        ev("2026-07-02T10:00:00+00:00", "score_computed",
+           listing_id="gp-001", score=0.7, confidence=0.5,
+           subscores={"rent_value": 0.8, "light": None}),
+    ])
+    assert state.listings["gp-001"].subscores == {"rent_value": 0.8,
+                                                  "light": None}

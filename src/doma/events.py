@@ -10,7 +10,7 @@ from typing import Any
 INPUT_EVENT_TYPES = frozenset({
     "listing_seen", "listing_updated", "price_changed", "listing_delisted",
     "alert_email_received", "enrichment_added", "facts_extracted",
-    "viewing_scored",
+    "viewing_scored", "listing_marked",
 })
 
 # Decision events: produced by the loop itself; recomputed during replay.

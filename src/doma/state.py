@@ -37,7 +37,9 @@ class ListingState:
     score: float | None = None
     score_confidence: float | None = None
     score_ts: str | None = None
+    subscores: dict[str, Any] = field(default_factory=dict)
     bait_flags: list[str] = field(default_factory=list)
+    scorecard: dict[str, Any] | None = None
 
 
 @dataclass
@@ -129,6 +131,17 @@ def project(events: list[Event]) -> HuntState:
                 listing.score = p.get("score")
                 listing.score_confidence = p.get("confidence")
                 listing.score_ts = e.ts
+                listing.subscores = p.get("subscores", {})
+        elif e.type == "listing_marked":
+            listing = state.listings.get(p.get("listing_id", ""))
+            if listing is not None and p.get("status") in (
+                    TERMINAL_STATUSES | {"active"}):
+                listing.status = p["status"]
+        elif e.type == "viewing_scored":
+            listing = state.listings.get(p.get("listing_id", ""))
+            if listing is not None:
+                listing.scorecard = {"verdict": p.get("verdict"),
+                                     "ratings": p.get("ratings", {})}
         elif e.type == "bait_flagged":
             listing = state.listings.get(p.get("listing_id", ""))
             if listing is not None and p.get("kind") not in listing.bait_flags:
