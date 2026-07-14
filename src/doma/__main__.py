@@ -178,12 +178,15 @@ def _cmd_draft(args: argparse.Namespace) -> None:
         return
     for lid in targets:
         listing = state.listings[lid]
-        draft, method = draft_outreach(api_key, listing)
+        draft, method, error = draft_outreach(api_key, listing)
         store.append(Event(ts=iso(datetime.now(timezone.utc)),
                            type="outreach_proposed",
                            payload={"listing_id": lid, "draft": draft,
-                                    "generation_method": method}))
-        print(f"drafted ({method}): {listing.address} {listing.unit or ''}")
+                                    "generation_method": method,
+                                    "error": error}))
+        note = f" — {error}" if error else ""
+        print(f"drafted ({method}): {listing.address} "
+              f"{listing.unit or ''}{note}")
     print(f"{len(targets)} draft(s) ready for review in the dashboard")
 
 

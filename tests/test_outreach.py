@@ -44,8 +44,9 @@ def test_fallback_draft_is_honest() -> None:
 def test_draft_outreach_falls_back_on_api_failure() -> None:
     def broken_post(*a, **kw):
         raise RuntimeError("api down")
-    draft, method = draft_outreach("key", _listing(), post=broken_post)
+    draft, method, error = draft_outreach("key", _listing(), post=broken_post)
     assert method == "fallback"
+    assert "api down" in error
     assert validate_draft(draft, _listing()) == []
 
 
@@ -55,9 +56,10 @@ def test_draft_outreach_falls_back_on_dishonest_output() -> None:
         def json(self):
             return {"choices": [{"message": {"content":
                     "This 900 sqft no fee gem!"}}]}
-    draft, method = draft_outreach("key", _listing(),
-                                   post=lambda *a, **kw: FakeResponse())
+    draft, method, error = draft_outreach("key", _listing(),
+                                          post=lambda *a, **kw: FakeResponse())
     assert method == "fallback"
+    assert "900" in error
 
 
 def test_draft_outreach_accepts_honest_output() -> None:
@@ -68,7 +70,8 @@ def test_draft_outreach_accepts_honest_output() -> None:
                     "Hello! Is 224 East 135th Street unit 2116S at $2,595 "
                     "still available? Could you tell me about the fee and "
                     "laundry? I'd love to schedule a viewing."}}]}
-    draft, method = draft_outreach("key", _listing(),
-                                   post=lambda *a, **kw: FakeResponse())
+    draft, method, error = draft_outreach("key", _listing(),
+                                          post=lambda *a, **kw: FakeResponse())
     assert method == "openrouter_api"
+    assert error is None
     assert "2116S" in draft

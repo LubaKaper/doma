@@ -84,9 +84,10 @@ def fallback_draft(listing: ListingState) -> str:
 
 def draft_outreach(api_key: str, listing: ListingState,
                    post: Callable[..., Any] = requests.post
-                   ) -> tuple[str, str]:
-    """One draft: (text, generation_method). Falls back on failure or
-    dishonesty — the fallback is always safe to show."""
+                   ) -> tuple[str, str, str | None]:
+    """One draft: (text, generation_method, error). Falls back on failure
+    or dishonesty — the fallback is always safe to show; the error says why
+    (never silent, per project rules)."""
     try:
         response = post(
             OPENROUTER_URL,
@@ -95,13 +96,19 @@ def draft_outreach(api_key: str, listing: ListingState,
                   "messages": [{"role": "system", "content": _SYSTEM},
                                {"role": "user",
                                 "content": build_prompt(listing)}],
-                  "temperature": 0.4, "max_tokens": 400},
+                  "temperature": 0.4, "max_tokens": 300},
             timeout=60,
         )
         response.raise_for_status()
-        draft = response.json()["choices"][0]["message"]["content"].strip()
-    except Exception:  # any failure -> deterministic fallback, never a crash
-        return fallback_draft(listing), "fallback"
-    if not draft or validate_draft(draft, listing):
-        return fallback_draft(listing), "fallback"
-    return draft, "openrouter_api"
+        body = response.json()
+        if "choices" not in body:
+            reason = str(body.get("error", body))[:200]
+            return fallback_draft(listing), "fallback", reason
+        draft = body["choices"][0]["message"]["content"].strip()
+    except Exception as exc:  # fallback, never a crash — reason surfaced
+        return fallback_draft(listing), "fallback", str(exc)[:200]
+    violations = validate_draft(draft, listing)
+    if not draft or violations:
+        return (fallback_draft(listing), "fallback",
+                "; ".join(violations) or "empty draft")
+    return draft, "openrouter_api", None
