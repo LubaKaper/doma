@@ -244,3 +244,13 @@ def test_outreach_folds() -> None:
     listing = state.listings["gp-001"]
     assert listing.outreach["draft"] == "Hello!"
     assert listing.outreach_status == "approved"
+
+
+def test_listing_updated_backfills_photo() -> None:
+    state = project([
+        _seen("2026-07-01T09:00:00+00:00", "gp-001"),
+        ev("2026-07-15T09:00:00+00:00", "listing_updated",
+           listing_id="gp-001", price=3000,
+           photo_url="https://photos.example/x.png"),
+    ])
+    assert state.listings["gp-001"].photo_url == "https://photos.example/x.png"

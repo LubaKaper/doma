@@ -30,3 +30,10 @@ def test_unknowns_stay_none() -> None:
     for snap in _snaps():
         assert snap.sqft is None or isinstance(snap.sqft, int)
         assert snap.days_on_market is None  # alerts don't carry DOM
+
+
+def test_photos_captured_when_present() -> None:
+    snaps = _snaps()
+    with_photo = [s for s in snaps if s.photo_url]
+    assert len(with_photo) >= 5
+    assert all(s.photo_url.startswith("https://") for s in with_photo)

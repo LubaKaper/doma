@@ -1,7 +1,9 @@
-"""Doma dashboard: the event store, projected and readable.
+"""Doma dashboard — a daily apartment-hunting cockpit.
 
-Thin shell: all data logic lives in doma.*; the UI reads projections and
-appends validated events (decisions.py). Run: streamlit run app.py
+Flow: Today (decide fast) -> Browse (dig deeper) -> Saved (message + visit)
+-> Visited (tell Doma how it was) -> Your taste (approve what it learned).
+The UI stays a thin shell: it reads projections and appends validated events.
+System internals live behind "Under the hood" in the sidebar.
 """
 from __future__ import annotations
 
@@ -13,64 +15,32 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "src"))  # editable-pth quirk guard
 
 import streamlit as st
+from dotenv import load_dotenv
 
 from doma.decisions import (mark_listing_event, scorecard_event,
                             weights_updated_event)
-from doma.events import iso
-from doma.learner import MIN_RATINGS, collect_ratings, propose_weights
-from doma.scorer import DEFAULT_WEIGHTS
+from doma.events import Event, iso
+from doma.humanize import BAIT_LABELS, chips, fit_label, knowledge_label
+from doma.learner import MIN_RATINGS, propose_weights
+from doma.outreach import draft_outreach
 from doma.state import ListingState, project
 from doma.store import EventStore
 
-# Single sequential hue for magnitude; gray for unknown; status red for bait.
-BAR_HUE = "#2563eb"
-BAR_UNKNOWN = "#d4d4d8"
-INK_MUTED = "#71717a"
-
 st.set_page_config(page_title="Doma", page_icon="🏠", layout="wide")
+
+CRITERIA_QUESTIONS = {
+    "rent_value": "Worth the price?",
+    "commute": "The trip there?",
+    "building_health": "Building condition?",
+    "laundry": "Laundry situation?",
+    "light": "Natural light?",
+    "fee_burden": "Fees & costs?",
+}
+PLACEHOLDER_TONES = ["#dbeafe", "#fce7f3", "#dcfce7", "#fef3c7", "#ede9fe"]
 
 
 def _now_iso() -> str:
     return iso(datetime.now(timezone.utc))
-
-
-def _subscore_bars(listing: ListingState) -> str:
-    """Horizontal magnitude bars; unknown criteria render as labeled gaps.
-
-    SAFETY: this HTML is rendered with unsafe_allow_html — never interpolate
-    listing-derived strings (addresses etc.) here; only static labels and
-    numbers computed locally.
-    """
-    rows = []
-    for criterion in DEFAULT_WEIGHTS:
-        value = listing.subscores.get(criterion)
-        label = criterion.replace("_", " ")
-        if value is None:
-            bar = (f'<div style="background:{BAR_UNKNOWN};width:100%;height:6px;'
-                   f'border-radius:4px;opacity:.5"></div>')
-            val = f'<span style="color:{INK_MUTED}">unknown</span>'
-        else:
-            pct = round(float(value) * 100)
-            bar = (f'<div style="background:#e4e4e7;width:100%;height:6px;'
-                   f'border-radius:4px"><div style="background:{BAR_HUE};'
-                   f'width:{pct}%;height:6px;border-radius:4px"></div></div>')
-            val = f"{value:.2f}"
-        rows.append(
-            f'<div style="display:grid;grid-template-columns:110px 1fr 52px;'
-            f'gap:10px;align-items:center;margin:4px 0;font-size:13px">'
-            f'<span style="color:{INK_MUTED}">{label}</span>{bar}'
-            f'<span style="text-align:right">{val}</span></div>')
-    return "".join(rows)
-
-
-def _title_line(listing: ListingState) -> str:
-    price = f"${listing.price:,}" if listing.price else "$?"
-    addr = f"{listing.address or listing.listing_id} {listing.unit or ''}".strip()
-    score = (f"{listing.score:.2f}" if listing.score is not None else "—")
-    conf = (f"{listing.score_confidence:.0%}"
-            if listing.score_confidence is not None else "?")
-    flag = f"  ⚠️ {', '.join(listing.bait_flags)}" if listing.bait_flags else ""
-    return f"{score} · {price} · {addr} · {listing.neighborhood} · conf {conf}{flag}"
 
 
 def _mark(store: EventStore, listing_id: str, status: str) -> None:
@@ -78,216 +48,297 @@ def _mark(store: EventStore, listing_id: str, status: str) -> None:
     st.rerun()
 
 
-def _listing_card(store: EventStore, listing: ListingState) -> None:
-    with st.expander(_title_line(listing)):
-        left, right = st.columns([3, 2], gap="large")
-        with left:
-            st.markdown("**Why this score**")
-            st.markdown(_subscore_bars(listing), unsafe_allow_html=True)
-            if listing.bait_flags:
-                detail = (f" — relisted {listing.relist_count}×"
-                          if listing.relist_count else "")
-                st.warning("Bait signals: "
-                           + ", ".join(listing.bait_flags) + detail)
-            if len(listing.price_history) > 1:
-                st.markdown("**Price history**")
-                st.table({"when": [h[0][:10] for h in listing.price_history],
-                          "price": [f"${h[1]:,}" for h in listing.price_history]})
-        with right:
-            st.markdown("**Facts**")
-            hpd = listing.hpd or {}
-            st.markdown(
-                f"- HPD open violations: "
-                f"{hpd.get('total', '?')} "
-                f"(A {hpd.get('class_a', '?')} · B {hpd.get('class_b', '?')} · "
-                f"C {hpd.get('class_c', '?')})\n"
-                f"- Nearest subway: "
-                f"{(listing.commute or {}).get('station', 'unknown')} "
-                f"({(listing.commute or {}).get('walk_meters', '?')} m)\n"
-                f"- Fee: {'no fee' if listing.fee is False else 'fee' if listing.fee else 'unknown'}\n"
-                f"- First seen: {listing.first_seen_ts[:10]} · "
-                f"last seen: {listing.last_seen_ts[:10]}")
-            b1, b2, b3 = st.columns(3)
-            if b1.button("⭐ Pursue", key=f"p-{listing.listing_id}",
-                         use_container_width=True):
+def _photo(listing: ListingState) -> None:
+    if listing.photo_url:
+        st.image(listing.photo_url, use_container_width=True)
+    else:
+        tone = PLACEHOLDER_TONES[hash(listing.listing_id)
+                                 % len(PLACEHOLDER_TONES)]
+        label = (listing.neighborhood or "?").title()
+        st.markdown(
+            f'<div style="background:{tone};border-radius:12px;height:150px;'
+            f'display:flex;align-items:center;justify-content:center;'
+            f'color:#525252;font-size:15px">No photo · {label}</div>',
+            unsafe_allow_html=True)
+
+
+def _headline(listing: ListingState) -> str:
+    price = f"${listing.price:,}/mo" if listing.price else "Price unknown"
+    addr = f"{listing.address or listing.listing_id}"
+    if listing.unit:
+        addr += f" · #{listing.unit}"
+    return f"**{price}** — {addr}"
+
+
+def _verdict_line(listing: ListingState) -> str:
+    return (f"{fit_label(listing.score)} · "
+            f"{knowledge_label(listing.score_confidence)}")
+
+
+def _bait_warning(listing: ListingState) -> None:
+    if listing.bait_flags:
+        reasons = "; ".join(BAIT_LABELS.get(f, f) for f in listing.bait_flags)
+        st.error(f"Careful: {reasons}", icon="⚠️")
+
+
+def _details(listing: ListingState) -> None:
+    with st.expander("More detail"):
+        source = ("StreetEasy alert" if "email" in listing.source
+                  else "RentCast")
+        st.markdown(
+            f"- Neighborhood: {(listing.neighborhood or '?').title()}\n"
+            f"- Source: {source}\n"
+            f"- First seen {listing.first_seen_ts[:10]}, "
+            f"last seen {listing.last_seen_ts[:10]}")
+        if len(listing.price_history) > 1:
+            st.caption("Price history")
+            st.table({"date": [h[0][:10] for h in listing.price_history],
+                      "price": [f"${h[1]:,}" for h in listing.price_history]})
+
+
+def _decision_card(store: EventStore, listing: ListingState,
+                   key_prefix: str) -> None:
+    """One place, one decision: Save it or Skip it."""
+    with st.container(border=True):
+        photo_col, body = st.columns([1, 2], gap="medium")
+        with photo_col:
+            _photo(listing)
+        with body:
+            st.markdown(_headline(listing))
+            card_chips = chips(listing)
+            if card_chips:
+                st.markdown(" · ".join(card_chips))
+            st.caption(_verdict_line(listing))
+            _bait_warning(listing)
+            save, skip, _sp = st.columns([1, 1, 2])
+            if save.button("♥ Save", key=f"{key_prefix}-s-{listing.listing_id}",
+                           use_container_width=True, type="primary"):
                 _mark(store, listing.listing_id, "pursuing")
-            if b2.button("👁 Viewed", key=f"v-{listing.listing_id}",
-                         use_container_width=True):
-                _mark(store, listing.listing_id, "viewed")
-            if b3.button("✕ Reject", key=f"r-{listing.listing_id}",
-                         use_container_width=True):
+            if skip.button("Skip", key=f"{key_prefix}-x-{listing.listing_id}",
+                           use_container_width=True):
                 _mark(store, listing.listing_id, "rejected")
+            _details(listing)
 
 
-def _scorecard_form(store: EventStore, listing: ListingState) -> None:
-    with st.form(key=f"sc-{listing.listing_id}"):
-        st.markdown(f"**{listing.address or listing.listing_id}** — "
-                    "rate what you actually experienced (skip = unknown)")
-        verdict = st.radio("Verdict", ["pursue", "pass"], horizontal=True,
-                           key=f"vd-{listing.listing_id}")
+def _tab_today(store: EventStore, undecided: list[ListingState]) -> None:
+    clean = [l for l in undecided if not l.bait_flags]
+    suspicious = [l for l in undecided if l.bait_flags]
+    if not undecided:
+        st.success("All caught up — nothing new needs a decision. "
+                   "Doma keeps watching.")
+        return
+    st.markdown(f"#### {len(undecided)} places waiting for your call")
+    st.caption("Best matches first. Save what looks promising, skip the "
+               "rest — every choice teaches Doma your taste.")
+    for listing in clean[:8]:
+        _decision_card(store, listing, "today")
+    remaining = len(clean) - min(len(clean), 8)
+    if remaining > 0:
+        st.caption(f"{remaining} more in the Browse tab.")
+    if suspicious:
+        with st.expander(f"⚠️ {len(suspicious)} places look like bait — "
+                         "view anyway"):
+            for listing in suspicious[:10]:
+                _decision_card(store, listing, "bait")
+
+
+def _tab_browse(store: EventStore, undecided: list[ListingState]) -> None:
+    f1, f2, f3 = st.columns([2, 1, 1])
+    max_price = f1.slider("Max price", 500, 10000, 4000, step=100)
+    sort = f2.selectbox("Sort by", ["Best fit", "Cheapest", "Newest"])
+    show_bait = f3.checkbox("Include bait", value=False)
+    rows = [l for l in undecided
+            if (l.price is None or l.price <= max_price)
+            and (show_bait or not l.bait_flags)]
+    if sort == "Cheapest":
+        rows.sort(key=lambda l: l.price or 10**9)
+    elif sort == "Newest":
+        rows.sort(key=lambda l: l.first_seen_ts, reverse=True)
+    st.caption(f"{len(rows)} places")
+    for listing in rows[:30]:
+        _decision_card(store, listing, "browse")
+
+
+def _tab_saved(store: EventStore, state) -> None:
+    saved = [l for l in state.listings.values() if l.status == "pursuing"]
+    if not saved:
+        st.info("Nothing saved yet — hit ♥ Save on places you like in "
+                "Today or Browse.")
+        return
+    st.caption("Your shortlist. Get a message drafted, send it from your "
+               "own email (Doma never sends anything), then log your visit.")
+    load_dotenv()
+    api_key = os.environ.get("OPENROUTER_API_KEY", "")
+    for listing in saved:
+        with st.container(border=True):
+            photo_col, body = st.columns([1, 2], gap="medium")
+            with photo_col:
+                _photo(listing)
+            with body:
+                st.markdown(_headline(listing))
+                card_chips = chips(listing)
+                if card_chips:
+                    st.markdown(" · ".join(card_chips))
+                _bait_warning(listing)
+                if listing.outreach is None:
+                    if st.button("✍️ Write my inquiry message",
+                                 key=f"d-{listing.listing_id}"):
+                        with st.spinner("Drafting…"):
+                            draft, method, error = draft_outreach(api_key,
+                                                                  listing)
+                        store.append(Event(
+                            ts=_now_iso(), type="outreach_proposed",
+                            payload={"listing_id": listing.listing_id,
+                                     "draft": draft,
+                                     "generation_method": method,
+                                     "error": error}))
+                        st.rerun()
+                else:
+                    st.caption("Copy this, personalize the sign-off, and "
+                               "send it yourself:")
+                    st.code(listing.outreach.get("draft", ""), language=None)
+                visit, unsave, _sp = st.columns([1, 1, 2])
+                if visit.button("🏠 I visited this place",
+                                key=f"vis-{listing.listing_id}",
+                                use_container_width=True):
+                    _mark(store, listing.listing_id, "viewed")
+                if unsave.button("Un-save", key=f"un-{listing.listing_id}",
+                                 use_container_width=True):
+                    _mark(store, listing.listing_id, "active")
+
+
+def _scorecard(store: EventStore, listing: ListingState) -> None:
+    with st.form(key=f"sc-{listing.listing_id}", border=True):
+        st.markdown(_headline(listing))
+        st.caption("60 seconds: how was it really? Skip anything you "
+                   "didn't get a feel for.")
+        verdict = st.radio("Would you take it?", ["pursue", "pass"],
+                           format_func=lambda v: ("Yes — I want this place"
+                                                  if v == "pursue"
+                                                  else "No — not for me"),
+                           horizontal=True, key=f"v-{listing.listing_id}")
         ratings: dict[str, int] = {}
         cols = st.columns(3)
-        for i, criterion in enumerate(DEFAULT_WEIGHTS):
+        for i, (criterion, question) in enumerate(CRITERIA_QUESTIONS.items()):
             with cols[i % 3]:
                 val = st.select_slider(
-                    criterion.replace("_", " "),
-                    options=["skip", 1, 2, 3, 4, 5], value="skip",
-                    key=f"sl-{listing.listing_id}-{criterion}")
+                    question, options=["skip", 1, 2, 3, 4, 5], value="skip",
+                    key=f"r-{listing.listing_id}-{criterion}",
+                    help="1 = terrible · 5 = amazing")
                 if val != "skip":
                     ratings[criterion] = int(val)
-        if st.form_submit_button("Save scorecard"):
+        if st.form_submit_button("Save my impressions", type="primary"):
             store.append(scorecard_event(listing.listing_id, verdict,
                                          ratings, ts=_now_iso()))
-            st.success("Saved — this feeds the preference learner.")
             st.rerun()
 
 
-def main() -> None:
-    db_default = os.environ.get("DOMA_DB", "doma.db")
+def _tab_visited(store: EventStore, state) -> None:
+    visited = [l for l in state.listings.values() if l.status == "viewed"]
+    if not visited:
+        st.info("After you tour a place, mark it \"I visited\" in Saved — "
+                "then rate it here so Doma learns what you actually like.")
+        return
+    pending = [l for l in visited if l.scorecard is None]
+    done = [l for l in visited if l.scorecard is not None]
+    for listing in pending:
+        _scorecard(store, listing)
+    if done:
+        st.markdown("#### Rated")
+        for listing in done:
+            verdict = listing.scorecard.get("verdict")
+            icon = "✅ would take it" if verdict == "pursue" else "❌ passed"
+            st.markdown(f"- {_headline(listing)} — {icon}")
+
+
+def _tab_taste(store: EventStore, state) -> None:
+    st.caption("What Doma believes matters to you. It only changes when "
+               "you approve.")
+    for criterion, weight in sorted(state.weights.items(),
+                                    key=lambda kv: -kv[1]):
+        name = criterion.replace("_", " ").title()
+        st.markdown(f"- **{name}** — {weight:.0%} of every score")
+    n_cards = sum(1 for l in state.listings.values() if l.scorecard)
+    st.divider()
+    proposal = propose_weights(state)
+    if proposal is None:
+        st.info(f"No changes to suggest yet ({n_cards} visit"
+                f"{'s' if n_cards != 1 else ''} rated so far — Doma speaks "
+                f"up once a criterion has {MIN_RATINGS}+ ratings).")
+        return
+    st.markdown("#### Doma noticed something")
+    for criterion in state.weights:
+        old, new = proposal.previous[criterion], proposal.weights[criterion]
+        if abs(new - old) < 0.005:
+            continue
+        name = criterion.replace("_", " ")
+        direction = ("matters more to you than assumed" if new > old
+                     else "seems to matter less than assumed")
+        ratings = proposal.evidence.get(criterion, {}).get("ratings")
+        basis = f" (your ratings: {ratings})" if ratings else ""
+        st.markdown(f"- **{name.title()}** {direction}: {old:.0%} → "
+                    f"{new:.0%}{basis}")
+    yes, no, _sp = st.columns([1, 1, 3])
+    if yes.button("Yes, update my taste", type="primary"):
+        store.append(weights_updated_event(proposal.weights,
+                                           proposal.previous,
+                                           proposal.evidence, ts=_now_iso()))
+        st.success("Updated — run `./doma rescore` to re-rank everything.")
+        st.rerun()
+    if no.button("Not now"):
+        st.caption("Okay — it'll keep learning.")
+
+
+def _sidebar(state, db_path: str, store: EventStore) -> None:
     st.sidebar.title("🏠 Doma")
-    db_path = st.sidebar.text_input("Event store", db_default)
+    st.sidebar.caption("Your apartment hunt, on autopilot. Doma scans "
+                       "listings daily, scores them against your taste, and "
+                       "flags the bait. You decide; it learns.")
+    with st.sidebar.expander("Under the hood"):
+        month = datetime.now(timezone.utc).strftime("%Y-%m")
+        active = sum(1 for l in state.listings.values()
+                     if l.status == "active")
+        st.markdown(
+            f"- {len(state.listings)} listings tracked, {active} active\n"
+            f"- {len(store.read_all())} events in the store\n"
+            f"- RentCast scans: {state.scan_months.get(month, 0)}/40 "
+            f"this month\n"
+            f"- Last scan: {(state.last_scan_ts or 'never')[:16]}")
+        if state.saturated:
+            st.markdown("- Paused (no new inventory): "
+                        + ", ".join(sorted(state.saturated)))
+        st.caption(f"Event store: {db_path}")
+
+
+def main() -> None:
+    db_path = os.environ.get("DOMA_DB", "doma.db")
     if not Path(db_path).exists():
-        st.info(f"No event store at `{db_path}` yet — run "
-                "`.venv/bin/python -m doma run` first.")
+        st.title("🏠 Doma")
+        st.info("No hunt data yet. Run `./doma run` in your terminal first — "
+                "then refresh this page.")
         return
     store = EventStore(db_path)
     state = project(store.read_all())
+    _sidebar(state, db_path, store)
 
-    month = datetime.now(timezone.utc).strftime("%Y-%m")
-    active = [l for l in state.listings.values() if l.status == "active"]
-    flagged = [l for l in state.listings.values() if l.bait_flags]
+    undecided = sorted(
+        (l for l in state.listings.values()
+         if l.status == "active" and l.score is not None),
+        key=lambda l: (-(l.score or 0), -(l.score_confidence or 0),
+                       l.price or 10**9))
 
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Active listings", len(active))
-    m2.metric("Scored", sum(1 for l in active if l.score is not None))
-    m3.metric("Bait flagged", len(flagged))
-    m4.metric("API budget", f"{state.scan_months.get(month, 0)}/40",
-              help="RentCast scans used this calendar month")
-    if state.saturated:
-        st.caption("Saturated (scanning stopped): "
-                   + ", ".join(sorted(state.saturated)))
-
-    tab_rank, tab_mine, tab_weights, tab_activity = st.tabs(
-        ["Ranked", "My decisions", "Weights", "Activity"])
-
-    with tab_rank:
-        f1, f2, f3 = st.columns([2, 2, 1])
-        max_price = f1.slider("Max price", 500, 10000, 4000, step=100)
-        min_conf = f2.slider("Min confidence", 0.0, 1.0, 0.0, step=0.05)
-        hide_flagged = f3.checkbox("Hide flagged", value=False)
-        ranked = sorted(
-            (l for l in active
-             if l.score is not None
-             and (l.price is None or l.price <= max_price)
-             and (l.score_confidence or 0) >= min_conf
-             and not (hide_flagged and l.bait_flags)),
-            key=lambda l: (-(l.score or 0), -(l.score_confidence or 0),
-                           l.price or 10**9))
-        if not ranked:
-            st.info("Nothing matches these filters.")
-        for listing in ranked[:25]:
-            _listing_card(store, listing)
-
-    with tab_mine:
-        for status, label in (("pursuing", "⭐ Pursuing"),
-                              ("viewed", "👁 Viewed — log a scorecard"),
-                              ("rejected", "✕ Rejected")):
-            group = [l for l in state.listings.values() if l.status == status]
-            st.subheader(f"{label} ({len(group)})")
-            for listing in group:
-                if status == "pursuing":
-                    st.markdown(f"- {_title_line(listing)}")
-                    if listing.outreach is None:
-                        st.caption("No draft yet — run `./doma draft`")
-                    else:
-                        method = listing.outreach.get("method")
-                        st.caption(f"Draft ({method}) — copy, personalize, "
-                                   "send it yourself. Doma never sends.")
-                        st.code(listing.outreach.get("draft", ""),
-                                language=None)
-                        a1, a2, _sp = st.columns([1, 1, 3])
-                        if listing.outreach_status is None:
-                            if a1.button("✓ Approve",
-                                         key=f"oa-{listing.listing_id}"):
-                                from doma.events import Event
-                                store.append(Event(
-                                    ts=_now_iso(), type="outreach_approved",
-                                    payload={"listing_id":
-                                             listing.listing_id}))
-                                st.rerun()
-                            if a2.button("✗ Discard",
-                                         key=f"or-{listing.listing_id}"):
-                                from doma.events import Event
-                                store.append(Event(
-                                    ts=_now_iso(), type="outreach_rejected",
-                                    payload={"listing_id":
-                                             listing.listing_id}))
-                                st.rerun()
-                        else:
-                            st.caption(f"Status: {listing.outreach_status}")
-                    continue
-                if status == "viewed" and listing.scorecard is None:
-                    _scorecard_form(store, listing)
-                else:
-                    line = _title_line(listing)
-                    if listing.scorecard:
-                        line += f"  · scorecard: {listing.scorecard['verdict']}"
-                    st.markdown(f"- {line}")
-                    if st.button("↩ back to active",
-                                 key=f"ba-{listing.listing_id}"):
-                        _mark(store, listing.listing_id, "active")
-
-    with tab_weights:
-        st.markdown("**Current taste model** — how much each criterion "
-                    "counts. Changes only via the approvals below.")
-        for criterion, weight in sorted(state.weights.items(),
-                                        key=lambda kv: -kv[1]):
-            pct = round(weight * 100)
-            st.markdown(
-                f'<div style="display:grid;grid-template-columns:130px 1fr 44px;'
-                f'gap:10px;align-items:center;margin:4px 0;font-size:14px">'
-                f'<span>{criterion.replace("_", " ")}</span>'
-                f'<div style="background:#e4e4e7;height:8px;border-radius:4px">'
-                f'<div style="background:{BAR_HUE};width:{pct}%;height:8px;'
-                f'border-radius:4px"></div></div>'
-                f'<span style="text-align:right">{pct}%</span></div>',
-                unsafe_allow_html=True)
-        if state.weights_ts:
-            st.caption(f"Last updated {state.weights_ts[:10]}")
-        ratings = collect_ratings(state)
-        n_cards = sum(1 for l in state.listings.values() if l.scorecard)
-        st.divider()
-        proposal = propose_weights(state)
-        if proposal is None:
-            st.info(f"No weight change proposed. {n_cards} scorecard(s) so "
-                    f"far — the learner speaks once a criterion has "
-                    f"{MIN_RATINGS}+ ratings and they point somewhere.")
-        else:
-            st.markdown("**Proposed update** — from your scorecards. "
-                        "Nothing changes unless you approve.")
-            rows = []
-            for criterion in state.weights:
-                old, new = proposal.previous[criterion], proposal.weights[criterion]
-                if abs(new - old) >= 0.005:
-                    ev_ = proposal.evidence.get(criterion, {})
-                    rows.append(f"- **{criterion.replace('_', ' ')}**: "
-                                f"{old:.0%} → {new:.0%}  "
-                                f"(ratings: {ev_.get('ratings', '—')})")
-            st.markdown("\n".join(rows))
-            if st.button("✅ Approve — apply new weights and rescore"):
-                store.append(weights_updated_event(
-                    proposal.weights, proposal.previous,
-                    proposal.evidence, ts=_now_iso()))
-                st.success("Weights updated — run `doma run` to rescore "
-                           "everything under the new taste model.")
-                st.rerun()
-
-    with tab_activity:
-        events = store.read_all()
-        st.caption(f"{len(events)} events in the store")
-        for e in reversed(events[-40:]):
-            st.text(f"{e.ts[:19]}  {e.type:22} "
-                    f"{e.payload.get('listing_id', e.payload.get('neighborhood', ''))}")
+    today, browse, saved, visited, taste = st.tabs(
+        ["🌅 Today", "🔍 Browse", "♥ Saved", "🏠 Visited", "🎯 Your taste"])
+    with today:
+        _tab_today(store, undecided)
+    with browse:
+        _tab_browse(store, undecided)
+    with saved:
+        _tab_saved(store, state)
+    with visited:
+        _tab_visited(store, state)
+    with taste:
+        _tab_taste(store, state)
 
 
 main()

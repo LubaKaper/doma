@@ -70,6 +70,11 @@ def parse_alert_html(html: str) -> list[Snapshot]:
             if " in " in area:
                 neighborhood = area.split(" in ", 1)[1].strip().lower()
 
+        photo = None
+        img = card.select_one("img.ListingCard-image")
+        if img is not None and img.get("src", "").startswith("https://"):
+            photo = img["src"]
+
         text = card.get_text(" ", strip=True)
         beds = None
         bed_match = re.search(r"(\d+)\s+Bed", text)
@@ -101,5 +106,6 @@ def parse_alert_html(html: str) -> list[Snapshot]:
             fee=fee,
             days_on_market=None,
             listed_date=None,
+            photo_url=photo,
         ))
     return snaps

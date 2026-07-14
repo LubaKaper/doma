@@ -28,6 +28,7 @@ class Snapshot:
     lon: float | None = None
     # Prior sightings reported by the source itself: [date, price, removed]
     history: list | None = None
+    photo_url: str | None = None
 
     def __post_init__(self) -> None:
         if not self.source:

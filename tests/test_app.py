@@ -27,10 +27,9 @@ def test_dashboard_renders_seeded_listing(tmp_path) -> None:
     at = AppTest.from_file("app.py", default_timeout=15)
     at.run()
     assert not at.exception
-    # KPI row present with the seeded counts
-    assert at.metric[0].value == "1"      # active listings
-    assert at.metric[1].value == "1"      # scored
-    assert at.metric[3].value == "0/40"   # budget
+    text = " ".join(str(md.value) for md in at.markdown)
+    assert "55 Nassau Ave" in text            # the card rendered
+    assert "waiting for your call" in text    # Today framing present
 
 
 def test_dashboard_empty_store_message(tmp_path) -> None:
@@ -38,4 +37,4 @@ def test_dashboard_empty_store_message(tmp_path) -> None:
     at = AppTest.from_file("app.py", default_timeout=15)
     at.run()
     assert not at.exception
-    assert any("No event store" in str(block.value) for block in at.info)
+    assert any("No hunt data yet" in str(block.value) for block in at.info)

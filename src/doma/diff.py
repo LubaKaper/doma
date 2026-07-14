@@ -26,6 +26,7 @@ def _seen_payload(lid: str, snap: Snapshot) -> dict[str, Any]:
         "lat": snap.lat,
         "lon": snap.lon,
         "history": snap.history,
+        "photo_url": snap.photo_url,
     }
 
 
@@ -54,7 +55,8 @@ def diff_scan(state: HuntState, snapshots: list[Snapshot], source: str,
         else:
             events.append(Event(ts=ts, type="listing_updated",
                                 payload={"listing_id": lid,
-                                         "price": snap.price}))
+                                         "price": snap.price,
+                                         "photo_url": snap.photo_url}))
     if not full_snapshot:
         return events
     for lid, listing in state.listings.items():

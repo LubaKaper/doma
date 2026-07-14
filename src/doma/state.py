@@ -36,6 +36,7 @@ class ListingState:
     lat: float | None = None
     lon: float | None = None
     zip: str | None = None   # geocoded when the source lacks it
+    photo_url: str | None = None
     # Accumulated history and enrichment
     price_history: list[list[Any]] = field(default_factory=list)  # [ts, price]
     hpd: dict[str, Any] | None = None
@@ -113,6 +114,7 @@ def project(events: list[Event]) -> HuntState:
                     fee=p.get("fee"),
                     lat=p.get("lat"),
                     lon=p.get("lon"),
+                    photo_url=p.get("photo_url"),
                 )
                 _seed_source_history(listing, p.get("history") or [])
                 _record_price(listing, e.ts, p.get("price"))
@@ -134,6 +136,8 @@ def project(events: list[Event]) -> HuntState:
                 if p.get("price") is not None:
                     listing.price = p["price"]
                     _record_price(listing, e.ts, p["price"])
+                if listing.photo_url is None and p.get("photo_url"):
+                    listing.photo_url = p["photo_url"]
         elif e.type == "price_changed":
             listing = state.listings.get(p["listing_id"])
             if listing is not None:
