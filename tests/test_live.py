@@ -95,3 +95,33 @@ def test_score_batch_scores_from_state() -> None:
     assert events[0].type == "score_computed"
     assert events[0].payload["score"] is not None
     assert 0 < events[0].payload["confidence"] < 1
+
+
+def test_geo_enrichment_patches_downstream_enrichers() -> None:
+    store = EventStore(":memory:")
+    store.append(Event(ts="2026-07-15T00:00:00+00:00", type="listing_seen",
+                       payload={"listing_id": "e", "source": "streeteasy_email",
+                                "neighborhood": "mott haven", "price": 2595,
+                                "address": "224 East 135th Street"}))
+    seen_zip = {}
+
+    def fake_geo(listing):
+        return {"zip": "10451", "borough": "Bronx",
+                "lat": 40.809945, "lon": -73.931046, "confidence": 0.8}
+
+    def fake_hpd(listing):
+        seen_zip["zip"] = listing.zip  # must see the geocoded zip
+        return {"class_a": 0, "class_b": 1, "class_c": 0, "total": 1,
+                "matched": True}
+
+    executor = LiveExecutor(store=store, fetcher=lambda: [],
+                            clock=ReplayClock(
+                                start=datetime(2026, 7, 15, tzinfo=timezone.utc)),
+                            sleep_seconds=0, geo_fetch=fake_geo,
+                            hpd_fetch=fake_hpd)
+    events = executor.execute(Action(type="enrich_batch", target=None,
+                                     reason="t", targets=("e",)))
+    kinds = [e.payload.get("kind") for e in events
+             if e.type == "enrichment_added"]
+    assert kinds == ["geo", "hpd_violations"]
+    assert seen_zip["zip"] == "10451"

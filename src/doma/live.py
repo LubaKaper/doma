@@ -2,6 +2,7 @@
 are injected callables so every code path stays testable without a network."""
 from __future__ import annotations
 
+import dataclasses
 import time
 from typing import Any, Callable
 
@@ -25,13 +26,15 @@ class LiveExecutor:
     def __init__(self, store: EventStore, fetcher: Callable[[], list[Snapshot]],
                  clock: Clock, sleep_seconds: int = 300,
                  hpd_fetch: Enricher | None = None,
-                 commute_fn: Enricher | None = None) -> None:
+                 commute_fn: Enricher | None = None,
+                 geo_fetch: Enricher | None = None) -> None:
         self._store = store
         self._fetcher = fetcher
         self._clock = clock
         self._sleep_seconds = sleep_seconds
         self._hpd_fetch = hpd_fetch
         self._commute_fn = commute_fn
+        self._geo_fetch = geo_fetch
 
     def execute(self, action: Action) -> list[Event]:
         """Produce the events one action yields, hitting real sources."""
@@ -64,6 +67,23 @@ class LiveExecutor:
             if listing is None:
                 continue
             errors: list[str] = []
+            if self._geo_fetch is not None and (listing.lat is None
+                                                or listing.zip is None):
+                try:
+                    geo = self._geo_fetch(listing)
+                except Exception as exc:  # recorded below — not silent
+                    geo = None
+                    errors.append(f"geo: {exc}")
+                if geo is not None:
+                    events.append(Event(ts=now_iso, type="enrichment_added",
+                                        payload={"listing_id": lid,
+                                                 "kind": "geo", **geo}))
+                    # Downstream enrichers in this same pass see the geocode.
+                    listing = dataclasses.replace(
+                        listing,
+                        zip=geo.get("zip", listing.zip),
+                        lat=listing.lat or geo.get("lat"),
+                        lon=listing.lon or geo.get("lon"))
             for kind, fn in (("hpd_violations", self._hpd_fetch),
                              ("commute", self._commute_fn)):
                 if fn is None:

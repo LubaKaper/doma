@@ -35,6 +35,7 @@ class ListingState:
     fee: bool | None = None
     lat: float | None = None
     lon: float | None = None
+    zip: str | None = None   # geocoded when the source lacks it
     # Accumulated history and enrichment
     price_history: list[list[Any]] = field(default_factory=list)  # [ts, price]
     hpd: dict[str, Any] | None = None
@@ -150,6 +151,12 @@ def project(events: list[Event]) -> HuntState:
                     listing.hpd = detail
                 elif p.get("kind") == "commute":
                     listing.commute = detail
+                elif p.get("kind") == "geo":
+                    listing.zip = detail.get("zip", listing.zip)
+                    if listing.lat is None:
+                        listing.lat = detail.get("lat")
+                    if listing.lon is None:
+                        listing.lon = detail.get("lon")
         elif e.type == "enrichment_attempted":
             listing = state.listings.get(p.get("listing_id", ""))
             if listing is not None:

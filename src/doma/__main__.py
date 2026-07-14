@@ -58,7 +58,7 @@ def _live_executor(db: str, city: str, state_code: str) -> tuple:
     def hpd_fetch(listing) -> dict | None:
         if listing.address is None:
             return None
-        boro = borough_from_zip(listing.neighborhood)
+        boro = borough_from_zip(listing.zip or listing.neighborhood)
         if boro is None:
             return None
         housenumber = listing.address.split()[0]
@@ -72,10 +72,19 @@ def _live_executor(db: str, city: str, state_code: str) -> tuple:
         station, meters = nearest_station(listing.lat, listing.lon, stations)
         return {"station": station.name, "walk_meters": round(meters)}
 
+    from doma.adapters.geosearch import fetch_geosearch, to_geo
+
+    def geo_fetch(listing) -> dict | None:
+        if listing.address is None:
+            return None
+        time.sleep(0.1)  # be gentle with the open geocoder
+        return to_geo(fetch_geosearch(
+            f"{listing.address}, {listing.neighborhood}"))
+
     clock = LiveClock()
     executor = LiveExecutor(store=store, fetcher=fetch, clock=clock,
                             sleep_seconds=0, hpd_fetch=hpd_fetch,
-                            commute_fn=commute_fn)
+                            commute_fn=commute_fn, geo_fetch=geo_fetch)
     return store, executor, clock
 
 
@@ -121,6 +130,27 @@ def _cmd_ingest_email(args: argparse.Namespace) -> None:
         store.append(e)
     print(f"{len(snaps)} listings in alert -> {len(events)} events "
           f"appended to {args.db}")
+
+
+def _cmd_enrich_missing(args: argparse.Namespace) -> None:
+    """Re-enrich active listings that still lack location facts."""
+    from doma.policy import Action
+    from doma.state import project
+
+    store, executor, _clock = _live_executor(args.db, args.city, args.state)
+    state = project(store.read_all())
+    targets = tuple(sorted(
+        lid for lid, l in state.listings.items()
+        if l.status == "active" and (l.hpd is None or l.commute is None)))
+    if not targets:
+        print("nothing to enrich — all active listings have location facts")
+        return
+    events = executor.execute(Action(type="enrich_batch", target=None,
+                                     reason="manual gap-fill",
+                                     targets=targets))
+    for e in events:
+        store.append(e)
+    print(f"enriched {len(targets)} listings -> {len(events)} events")
 
 
 def _cmd_rescore(args: argparse.Namespace) -> None:
@@ -213,6 +243,12 @@ def main() -> None:
     ie.add_argument("eml", help="path to the saved .eml file")
     ie.add_argument("--db", default="doma.db")
 
+    en = sub.add_parser("enrich",
+                        help="gap-fill enrichment for listings missing facts")
+    en.add_argument("--db", default="doma.db")
+    en.add_argument("--city", default="Brooklyn")
+    en.add_argument("--state", default="NY")
+
     rs = sub.add_parser("rescore",
                         help="rescore all active listings under current rules")
     rs.add_argument("--db", default="doma.db")
@@ -232,6 +268,8 @@ def main() -> None:
         _cmd_ingest_email(args)
     elif args.command == "rescore":
         _cmd_rescore(args)
+    elif args.command == "enrich":
+        _cmd_enrich_missing(args)
     elif args.command == "run":
         _cmd_run(args)
     elif args.command == "rank":
