@@ -133,24 +133,40 @@ def _cmd_ingest_email(args: argparse.Namespace) -> None:
 
 
 def _cmd_enrich_missing(args: argparse.Namespace) -> None:
-    """Re-enrich active listings that still lack location facts."""
+    """Re-enrich active listings that still lack location facts.
+
+    Chunked: progress prints and results persist every 20 listings, so
+    Ctrl+C never loses more than one chunk and reruns resume where it left.
+    """
     from doma.policy import Action
     from doma.state import project
 
     store, executor, _clock = _live_executor(args.db, args.city, args.state)
     state = project(store.read_all())
-    targets = tuple(sorted(
+    targets = sorted(
         lid for lid, l in state.listings.items()
-        if l.status == "active" and (l.hpd is None or l.commute is None)))
+        if l.status == "active" and (l.hpd is None or l.commute is None))
     if not targets:
         print("nothing to enrich — all active listings have location facts")
         return
-    events = executor.execute(Action(type="enrich_batch", target=None,
-                                     reason="manual gap-fill",
-                                     targets=targets))
-    for e in events:
-        store.append(e)
-    print(f"enriched {len(targets)} listings -> {len(events)} events")
+    if args.limit:
+        targets = targets[:args.limit]
+    print(f"{len(targets)} listings to enrich "
+          f"(~{max(1, len(targets) // 60)}+ min; Ctrl+C anytime, "
+          f"progress is saved per chunk)")
+    total_events = 0
+    for start in range(0, len(targets), 20):
+        chunk = tuple(targets[start:start + 20])
+        events = executor.execute(Action(type="enrich_batch", target=None,
+                                         reason="manual gap-fill",
+                                         targets=chunk))
+        for e in events:
+            store.append(e)
+        total_events += len(events)
+        done = min(start + 20, len(targets))
+        print(f"  {done}/{len(targets)} listings done "
+              f"({total_events} events)")
+    print("enrichment complete — run ./doma rescore next")
 
 
 def _cmd_draft(args: argparse.Namespace) -> None:
@@ -289,6 +305,8 @@ def main() -> None:
     en.add_argument("--db", default="doma.db")
     en.add_argument("--city", default="Brooklyn")
     en.add_argument("--state", default="NY")
+    en.add_argument("--limit", type=int, default=0,
+                    help="only process the first N (0 = all)")
 
     rs = sub.add_parser("rescore",
                         help="rescore all active listings under current rules")
