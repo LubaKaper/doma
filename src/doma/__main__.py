@@ -153,6 +153,40 @@ def _cmd_enrich_missing(args: argparse.Namespace) -> None:
     print(f"enriched {len(targets)} listings -> {len(events)} events")
 
 
+def _cmd_draft(args: argparse.Namespace) -> None:
+    """Draft outreach for pursuing listings that lack one. Never sends."""
+    import os
+    from datetime import datetime, timezone
+
+    from dotenv import load_dotenv
+
+    from doma.events import Event, iso
+    from doma.outreach import draft_outreach
+    from doma.state import project
+
+    load_dotenv()
+    api_key = os.environ.get("OPENROUTER_API_KEY", "")
+    if not api_key:
+        raise SystemExit("OPENROUTER_API_KEY not set (see .env.example)")
+    store = EventStore(args.db)
+    state = project(store.read_all())
+    targets = sorted(lid for lid, l in state.listings.items()
+                     if l.status == "pursuing" and l.outreach is None)
+    if not targets:
+        print("no pursuing listings without a draft — mark some ⭐ Pursue "
+              "in the dashboard first")
+        return
+    for lid in targets:
+        listing = state.listings[lid]
+        draft, method = draft_outreach(api_key, listing)
+        store.append(Event(ts=iso(datetime.now(timezone.utc)),
+                           type="outreach_proposed",
+                           payload={"listing_id": lid, "draft": draft,
+                                    "generation_method": method}))
+        print(f"drafted ({method}): {listing.address} {listing.unit or ''}")
+    print(f"{len(targets)} draft(s) ready for review in the dashboard")
+
+
 def _cmd_rescore(args: argparse.Namespace) -> None:
     """Manually rescore every active listing under the current rules."""
     from datetime import datetime, timezone
@@ -243,6 +277,10 @@ def main() -> None:
     ie.add_argument("eml", help="path to the saved .eml file")
     ie.add_argument("--db", default="doma.db")
 
+    dr = sub.add_parser("draft",
+                        help="draft outreach for pursuing listings (LLM)")
+    dr.add_argument("--db", default="doma.db")
+
     en = sub.add_parser("enrich",
                         help="gap-fill enrichment for listings missing facts")
     en.add_argument("--db", default="doma.db")
@@ -270,6 +308,8 @@ def main() -> None:
         _cmd_rescore(args)
     elif args.command == "enrich":
         _cmd_enrich_missing(args)
+    elif args.command == "draft":
+        _cmd_draft(args)
     elif args.command == "run":
         _cmd_run(args)
     elif args.command == "rank":

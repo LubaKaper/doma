@@ -195,6 +195,37 @@ def main() -> None:
             group = [l for l in state.listings.values() if l.status == status]
             st.subheader(f"{label} ({len(group)})")
             for listing in group:
+                if status == "pursuing":
+                    st.markdown(f"- {_title_line(listing)}")
+                    if listing.outreach is None:
+                        st.caption("No draft yet — run `./doma draft`")
+                    else:
+                        method = listing.outreach.get("method")
+                        st.caption(f"Draft ({method}) — copy, personalize, "
+                                   "send it yourself. Doma never sends.")
+                        st.code(listing.outreach.get("draft", ""),
+                                language=None)
+                        a1, a2, _sp = st.columns([1, 1, 3])
+                        if listing.outreach_status is None:
+                            if a1.button("✓ Approve",
+                                         key=f"oa-{listing.listing_id}"):
+                                from doma.events import Event
+                                store.append(Event(
+                                    ts=_now_iso(), type="outreach_approved",
+                                    payload={"listing_id":
+                                             listing.listing_id}))
+                                st.rerun()
+                            if a2.button("✗ Discard",
+                                         key=f"or-{listing.listing_id}"):
+                                from doma.events import Event
+                                store.append(Event(
+                                    ts=_now_iso(), type="outreach_rejected",
+                                    payload={"listing_id":
+                                             listing.listing_id}))
+                                st.rerun()
+                        else:
+                            st.caption(f"Status: {listing.outreach_status}")
+                    continue
                 if status == "viewed" and listing.scorecard is None:
                     _scorecard_form(store, listing)
                 else:

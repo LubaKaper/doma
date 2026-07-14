@@ -48,6 +48,8 @@ class ListingState:
     subscores: dict[str, Any] = field(default_factory=dict)
     bait_flags: list[str] = field(default_factory=list)
     scorecard: dict[str, Any] | None = None
+    outreach: dict[str, Any] | None = None      # latest proposed draft
+    outreach_status: str | None = None          # approved | rejected
 
 
 @dataclass
@@ -173,6 +175,17 @@ def project(events: list[Event]) -> HuntState:
             if listing is not None and p.get("status") in (
                     TERMINAL_STATUSES | {"active"}):
                 listing.status = p["status"]
+        elif e.type == "outreach_proposed":
+            listing = state.listings.get(p.get("listing_id", ""))
+            if listing is not None:
+                listing.outreach = {"draft": p.get("draft"),
+                                    "method": p.get("generation_method"),
+                                    "ts": e.ts}
+                listing.outreach_status = None
+        elif e.type in ("outreach_approved", "outreach_rejected"):
+            listing = state.listings.get(p.get("listing_id", ""))
+            if listing is not None:
+                listing.outreach_status = e.type.removeprefix("outreach_")
         elif e.type == "viewing_scored":
             listing = state.listings.get(p.get("listing_id", ""))
             if listing is not None:

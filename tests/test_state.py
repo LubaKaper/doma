@@ -231,3 +231,16 @@ def test_source_history_old_removal_is_not_a_relist() -> None:
                         history=[["2025-06-09", 3850, True],
                                  ["2026-07-13", 3950, False]])])
     assert state.listings["x"].relist_count == 0  # 13-month gap: turnover
+
+
+def test_outreach_folds() -> None:
+    state = project([
+        _seen("2026-07-01T09:00:00+00:00", "gp-001"),
+        ev("2026-07-15T09:00:00+00:00", "outreach_proposed",
+           listing_id="gp-001", draft="Hello!", generation_method="fallback"),
+        ev("2026-07-15T10:00:00+00:00", "outreach_approved",
+           listing_id="gp-001"),
+    ])
+    listing = state.listings["gp-001"]
+    assert listing.outreach["draft"] == "Hello!"
+    assert listing.outreach_status == "approved"
