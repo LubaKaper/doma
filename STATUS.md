@@ -3,7 +3,7 @@
 > Update this file after every substantial change (see AGENTS.md §Docs
 > contract). A fresh session starts by reading this.
 
-**Last updated:** 2026-07-13 (email parser shipped from real sample; second source live)
+**Last updated:** 2026-07-15 (geocoding closes the email-listing zip gap)
 
 ## Current state
 
@@ -27,9 +27,9 @@
    `doma ingest-email <file.eml>` feeds alerts into the db (incremental —
    never delists). NOTE (corrected): the alert bundles MULTIPLE saved searches — subject
    named only the NJ one. Actual content: 7 NJ + 7 NYC (5 Mott Haven,
-   2 Flatbush). Gap: email listings carry neighborhood NAMES not zips, so
-   zip-keyed enrichment (HPD boro, stations) skips them — needs address
-   geocoding or a listing-page lookup to close. Remaining from this thread: LLM fact extraction over email
+   2 Flatbush). ~~Gap: email listings carry neighborhood NAMES not zips~~ — closed
+   2026-07-15 via NYC GeoSearch geocoding (keyless, verified live). Run
+   `./doma enrich` then `./doma rescore` to backfill existing listings. Remaining from this thread: LLM fact extraction over email
    text + outreach drafter (needs OPENROUTER_API_KEY), Gmail API auto-fetch.
 2. **Calibration status:** too-good-to-be-true rule ✅, HPD matched-flag
    honesty (incl. legacy payloads) ✅, RentCast history ingestion with 90-day
